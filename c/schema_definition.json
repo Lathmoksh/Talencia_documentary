@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://talentra.internal/schemas/feature-discovery.json",
+  "title": "Talentra Feature Discovery Schema",
+  "description": "Validation schema for Talentra's feature catalog, competitive benchmark, and physical database mappings.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "discovery_approach",
+    "feature_catalog",
+    "competitor_benchmark",
+    "database_mappings",
+    "acceptance_tests"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["document_id", "version", "last_updated", "author", "reviewed_by", "status"],
+      "properties": {
+        "document_id": { "type": "string" },
+        "version": { "type": "string" },
+        "last_updated": { "type": "string", "format": "date" },
+        "author": { "type": "string" },
+        "reviewed_by": { "type": "string" },
+        "status": { "type": "string", "enum": ["Draft", "In Review", "Approved", "Superseded"] }
+      }
+    },
+    "discovery_approach": {
+      "type": "object",
+      "required": ["workflow_sources", "prioritization_framework"],
+      "properties": {
+        "workflow_sources": { "type": "string" },
+        "prioritization_framework": { "type": "string" }
+      }
+    },
+    "feature_catalog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "description", "priority", "target_actor", "business_value", "database_module"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "priority": { "type": "string", "enum": ["Must Have", "Should Have", "Could Have"] },
+          "target_actor": { "type": "string" },
+          "business_value": { "type": "string" },
+          "database_module": { "type": "string" }
+        }
+      }
+    },
+    "competitor_benchmark": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["capability", "talentra_approach", "linkedin_approach", "naukri_approach", "monster_approach", "verdict"],
+        "properties": {
+          "capability": { "type": "string" },
+          "talentra_approach": { "type": "string" },
+          "linkedin_approach": { "type": "string" },
+          "naukri_approach": { "type": "string" },
+          "monster_approach": { "type": "string" },
+          "verdict": { "type": "string", "enum": ["Exceeds", "Matches", "Deliberately Diverges"] }
+        }
+      }
+    },
+    "database_mappings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["module", "owned_features", "tables", "key_constraints"],
+        "properties": {
+          "module": { "type": "string" },
+          "owned_features": { "type": "array", "items": { "type": "string" } },
+          "tables": { "type": "array", "items": { "type": "string" } },
+          "key_constraints": { "type": "string" }
+        }
+      }
+    },
+    "acceptance_tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["test_id", "feature_id", "scenario", "expected_db_invariant"],
+        "properties": {
+          "test_id": { "type": "string" },
+          "feature_id": { "type": "string" },
+          "scenario": { "type": "string" },
+          "expected_db_invariant": { "type": "string" }
+        }
+      }
+    }
+  }
+}

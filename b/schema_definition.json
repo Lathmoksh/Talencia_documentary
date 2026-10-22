@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://talentra.internal/schemas/stakeholders-personas-roles.json",
+  "title": "Talentra Stakeholders, Personas and Roles Schema",
+  "description": "Validation schema for actor personas, role definitions, access guardrails, and permission mappings.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "stakeholder_groups",
+    "persona_catalog",
+    "rbac_matrix",
+    "security_guardrails",
+    "test_scenarios"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["document_id", "version", "last_updated", "author", "reviewed_by", "status"],
+      "properties": {
+        "document_id": { "type": "string" },
+        "version": { "type": "string" },
+        "last_updated": { "type": "string", "format": "date" },
+        "author": { "type": "string" },
+        "reviewed_by": { "type": "string" },
+        "status": { "type": "string", "enum": ["Draft", "In Review", "Approved", "Superseded"] }
+      }
+    },
+    "stakeholder_groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["group_id", "name", "category", "primary_outcome", "subsystems"],
+        "properties": {
+          "group_id": { "type": "string" },
+          "name": { "type": "string" },
+          "category": { "type": "string", "enum": ["Human User", "Enterprise Account", "System Integration"] },
+          "primary_outcome": { "type": "string" },
+          "subsystems": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "persona_catalog": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["persona_id", "display_name", "role_code", "workflows", "security_guardrail", "frequency"],
+        "properties": {
+          "persona_id": { "type": "string" },
+          "display_name": { "type": "string" },
+          "role_code": {
+            "type": "string",
+            "enum": ["SUPER_ADMIN", "ADMIN", "ACCOUNT_ADMIN", "GUEST", "CANDIDATE", "EMPLOYER", "RECRUITER", "CONSULTANT", "TPO", "AUDITOR", "SYSTEM_WORKER"]
+          },
+          "workflows": { "type": "array", "items": { "type": "string" } },
+          "security_guardrail": { "type": "string" },
+          "frequency": { "type": "string", "enum": ["Daily Continuous", "Daily Active", "Weekly Burst", "Monthly Audit", "As Needed"] }
+        }
+      }
+    },
+    "rbac_matrix": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["role", "module", "permissions", "enforcement_method"],
+        "properties": {
+          "role": { "type": "string" },
+          "module": { "type": "string" },
+          "permissions": { "type": "string" },
+          "enforcement_method": { "type": "string" }
+        }
+      }
+    },
+    "security_guardrails": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule_id", "rule_name", "database_mechanism", "failure_response"],
+        "properties": {
+          "rule_id": { "type": "string" },
+          "rule_name": { "type": "string" },
+          "database_mechanism": { "type": "string" },
+          "failure_response": { "type": "string" }
+        }
+      }
+    },
+    "test_scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["test_id", "description", "expected_db_response"],
+        "properties": {
+          "test_id": { "type": "string" },
+          "description": { "type": "string" },
+          "expected_db_response": { "type": "string" }
+        }
+      }
+    }
+  }
+}

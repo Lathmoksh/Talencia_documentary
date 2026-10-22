@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://talentra.internal/schemas/requirements-docket.json",
+  "title": "Talentra Requirements Analysis Docket Schema",
+  "description": "Validation schema for Talentra's project requirements docket and integration boundaries.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "project_overview",
+    "integration_boundaries",
+    "functional_requirements",
+    "non_functional_requirements",
+    "database_standards"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["docket_id", "version", "last_updated", "author", "reviewed_by", "status"],
+      "properties": {
+        "docket_id": { "type": "string" },
+        "version": { "type": "string" },
+        "last_updated": { "type": "string", "format": "date" },
+        "author": { "type": "string" },
+        "reviewed_by": { "type": "string" },
+        "status": { "type": "string", "enum": ["Draft", "In Review", "Approved", "Superseded"] }
+      }
+    },
+    "project_overview": {
+      "type": "object",
+      "required": ["problem_summary", "target_scale", "workforce_types"],
+      "properties": {
+        "problem_summary": { "type": "string" },
+        "target_scale": {
+          "type": "object",
+          "required": ["laptop_benchmark", "production_projection"],
+          "properties": {
+            "laptop_benchmark": {
+              "type": "object",
+              "properties": {
+                "candidate_profiles": { "type": "integer" },
+                "job_openings": { "type": "integer" },
+                "applications": { "type": "integer" }
+              }
+            },
+            "production_projection": {
+              "type": "object",
+              "properties": {
+                "candidate_profiles": { "type": "integer" },
+                "job_openings": { "type": "integer" },
+                "applications": { "type": "integer" }
+              }
+            }
+          }
+        },
+        "workforce_types": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "integration_boundaries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["service_name", "source_of_truth", "persisted_fields", "failure_strategy", "idempotency"],
+        "properties": {
+          "service_name": { "type": "string" },
+          "source_of_truth": { "type": "string" },
+          "persisted_fields": { "type": "string" },
+          "failure_strategy": { "type": "string" },
+          "idempotency": { "type": "string" }
+        }
+      }
+    },
+    "functional_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "module", "priority", "description", "db_constraint"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "module": { "type": "string" },
+          "priority": { "type": "string", "enum": ["Must Have", "Should Have", "Could Have"] },
+          "description": { "type": "string" },
+          "db_constraint": { "type": "string" }
+        }
+      }
+    },
+    "non_functional_requirements": {
+      "type": "object",
+      "required": ["latency_budgets", "backup_and_recovery", "security_baseline"],
+      "properties": {
+        "latency_budgets": { "type": "object" },
+        "backup_and_recovery": { "type": "object" },
+        "security_baseline": { "type": "object" }
+      }
+    },
+    "database_standards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule_category", "standard", "how_enforced"],
+        "properties": {
+          "rule_category": { "type": "string" },
+          "standard": { "type": "string" },
+          "how_enforced": { "type": "string" }
+        }
+      }
+    }
+  }
+}
