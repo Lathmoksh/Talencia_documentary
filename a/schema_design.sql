@@ -125,7 +125,7 @@ CREATE TABLE administration.data_classification_catalog (
 );
 
 -- -----------------------------------------------------------------------------
--- 4. Realistic Seed Fixture (Student Notes Page 15: High-Value Realistic Data)
+-- 4. Realistic Seed Fixtures: Verified Domain Data Demonstration
 -- -----------------------------------------------------------------------------
 
 -- Realistic sample audit entry: Candidate profile creation event

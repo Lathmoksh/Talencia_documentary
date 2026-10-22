@@ -8,7 +8,7 @@
 
 ## 1. Schema Hierarchy & Level Metrics
 
-Following the *Control the Output* methodology (Playbook Pages 5–6 & 18), this schema organizes access boundaries, persona models, and database security rules into a 4-level nonlinear hierarchy:
+This schema organizes access boundaries, persona models, and database security rules into a 4-level architectural hierarchy:
 
 ```
 Stakeholders & Roles Schema (Root)
@@ -20,7 +20,7 @@ Stakeholders & Roles Schema (Root)
  └── L1.5 Quality Verification Scenarios (SQL Security Assertions)
 ```
 
-### Schema Metrics by Level (Playbook Page 6 & 18)
+### Schema Metrics & Structural Hierarchy
 
 | Level | Granularity | Measured Count | Status / Basis | Key Question Answered |
 | :--- | :--- | :---: | :--- | :--- |
@@ -31,18 +31,18 @@ Stakeholders & Roles Schema (Root)
 
 ---
 
-## 2. Keep / Drop Decision Log (Playbook Stage 2 Checklist)
+## 2. Scope & Access Decision Log
 
-As mandated by Stage 2 (*Define*) of the Process Playbook, all structural decisions and scope exclusions are explicitly logged:
+Key security decisions, access boundaries, and deliberate exclusions are recorded below:
 
 | Item / Feature Considered | Decision | Justification & Architectural Rationale | Stage Owner |
 | :--- | :---: | :--- | :---: |
-| **Employer Internal Sub-Roles in v1** | **DROPPED** | Explicitly excluded by Problem Docket Section 3. Kept out of v1 to ensure clean, high-performance Row-Level Security (`RLS`). Extended via v2 roadmap. | Define |
-| **Recruiter Proxy Candidate Registration** | **DROPPED** | Strictly prohibited by Problem Docket Section 3. Candidates must self-register to ensure ownership of consent and privacy blocks. | Define |
-| **Frontend-Only Role Hiding** | **DROPPED** | Problem Docket mandates: *Every privilege must be enforced in the database or access layer, not only in the interface.* Relies on PostgreSQL RLS and stored procedures. | Define |
-| **9 Human Actors + 2 System Roles** | **KEPT** | Directly implements the 9 actors defined in Section 3 (Super Admin, Admin, Account Admin, Guest, Candidate, Employer, Recruiter, Consultant, TPO) plus Auditor and System Worker. | Discover |
-| **Candidate Negative Sourcing Blocks** | **KEPT** | High-value privacy differentiator. Blocked parties are completely suppressed from search pools via SQL anti-joins. | Define |
-| **Database-Tier Session Device Limits** | **KEPT** | Prevents concurrent seat sharing. Enforced inside `authenticate_session()` stored procedure with row locking (`FOR UPDATE`). | Define |
+| **Employer Internal Sub-Roles in v1** | **DROPPED** | Explicitly excluded by Problem Docket Section 3. Kept out of v1 to ensure clean, high-performance Row-Level Security (`RLS`). Extended via v2 roadmap. | Architecture |
+| **Recruiter Proxy Candidate Registration** | **DROPPED** | Strictly prohibited by Problem Docket Section 3. Candidates must self-register to ensure ownership of consent and privacy blocks. | Architecture |
+| **Frontend-Only Role Hiding** | **DROPPED** | Problem Docket mandates: *Every privilege must be enforced in the database or access layer, not only in the interface.* Relies on PostgreSQL RLS and stored procedures. | Architecture |
+| **9 Human Actors + 2 System Roles** | **KEPT** | Directly implements the 9 actors defined in Section 3 (Super Admin, Admin, Account Admin, Guest, Candidate, Employer, Recruiter, Consultant, TPO) plus Auditor and System Worker. | Requirements Analysis |
+| **Candidate Negative Sourcing Blocks** | **KEPT** | High-value privacy differentiator. Blocked parties are completely suppressed from search pools via SQL anti-joins. | Architecture |
+| **Database-Tier Session Device Limits** | **KEPT** | Prevents concurrent seat sharing. Enforced inside `authenticate_session()` stored procedure with row locking (`FOR UPDATE`). | Architecture |
 
 ---
 
@@ -64,7 +64,7 @@ Classifies users and systems into distinct operational categories:
 * `subsystems`: List of database schemas mapped to this stakeholder group.
 
 ### Section L1.2: Persona Catalog (9 Core Archetypes)
-Defines realistic personas to validate user workflows:
+Architectures realistic personas to validate user workflows:
 * `persona_id`: Identifier string (`P-01` to `P-09`).
 * `display_name`: Persona name and professional context (e.g., "Asha — Mid-Career Software Engineer", "Meera — In-House Tech Recruiter").
 * `role_code`: Exact system role code from the database catalog (`CANDIDATE`, `EMPLOYER`, `RECRUITER`, `CONSULTANT`, `TPO`, `ACCOUNT_ADMIN`, `SUPER_ADMIN`, `AUDITOR`, `SYSTEM_WORKER`).
@@ -80,7 +80,7 @@ Maps each role to allowable actions across all 11 database modules:
 * `enforcement_method`: How the database guarantees the rule (`Postgres RLS`, `Check Trigger`, `Stored Procedure`, `Database Grant`).
 
 ### Section L1.4: Mandatory Database Guardrails
-Defines the mandatory non-negotiable rules from the problem statement:
+Architectures the mandatory non-negotiable rules from the problem statement:
 * **G-01 Recruiter Isolation**: A recruiter may only view and manage job requisitions belonging to their own employer organization. Enforced via Row-Level Security (`RLS`).
 * **G-02 Candidate Blocking**: Candidates can block specific employers, recruiters, or headhunters. Blocked parties must be completely excluded from seeing the candidate in search results.
 * **G-03 Consultant Access Gate**: Consultants can only view and source for requisitions explicitly flagged `open_to_consultants = TRUE` where an employer has accepted their sourcing request.

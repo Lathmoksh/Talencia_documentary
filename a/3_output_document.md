@@ -155,12 +155,12 @@ Talentra references data from 9 external systems without owning their internal m
 
 ---
 
-## 7. Quality Verification: Lakshya's 5-Branch Test Taxonomy (Student Notes Page 33)
+## 7. Quality Verification: 5-Branch Test Taxonomy
 
-Following the 5-branch test case graph taught in the Student Learning Notes, test verification is structured to provide complete safety coverage:
+Test verification is structured across five core architectural branches to provide complete safety coverage:
 
 ```
-Test Verification Graph (Student Notes p. 33)
+Test Verification Graph
  ├── 1. Structure & Project Best Practices (Naming, keys, physical schema)
  ├── 2. Data Integrity & Data Quality (Formats, required fields, cascade rules)
  ├── 3. Business Rules & Behaviour (Pipelines, workflows, non-overlapping windows)

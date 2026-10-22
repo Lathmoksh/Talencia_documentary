@@ -176,12 +176,12 @@ The database architecture enforces the rules from Section 3 of the Problem Docke
 
 ---
 
-## 5. Quality Verification: Lakshya's 5-Branch Test Taxonomy (Student Notes Page 33)
+## 5. Quality Verification: Access & Security Test Taxonomy
 
-Following the 5-branch test case graph taught in the Student Learning Notes, access and persona security verification is structured into distinct engineering branches:
+Access and persona security verification is structured across five core engineering branches:
 
 ```
-Access & Security Test Graph (Student Notes p. 33)
+Access & Security Test Graph
  ├── 1. Structure & Project Best Practices (Role catalogs, system flags, surrogate keys)
  ├── 2. Data Integrity & Data Quality (Effective dates, email regex, unique mappings)
  ├── 3. Business Rules & Behaviour (Consultant sourcing gating, proxy registration bar)

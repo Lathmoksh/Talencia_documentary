@@ -8,7 +8,7 @@
 
 ## 1. Schema Hierarchy & Level Metrics
 
-Following the *Control the Output* methodology (Playbook Pages 5–6 & 18), this schema is structured as a nonlinear hierarchy across four distinct levels:
+This schema is structured as an architectural hierarchy across four distinct levels:
 
 ```
 Requirement Docket Schema (Root)
@@ -20,7 +20,7 @@ Requirement Docket Schema (Root)
  └── L1.5 Database Standards & Domain Rules (10 Rule Groups)
 ```
 
-### Schema Metrics by Level (Playbook Page 6 & 18)
+### Schema Metrics & Structural Hierarchy
 
 | Level | Granularity | Measured Count | Status / Basis | Key Question Answered |
 | :--- | :--- | :---: | :--- | :--- |
@@ -31,19 +31,19 @@ Requirement Docket Schema (Root)
 
 ---
 
-## 2. Keep / Drop Decision Log (Playbook Stage 2 Checklist)
+## 2. Scope & Architectural Decision Log
 
-As mandated by Stage 2 (*Define*) of the Process Playbook, all structural decisions and scope exclusions are explicitly logged:
+All foundational architecture decisions, structural scope choices, and deliberate exclusions are recorded below:
 
 | Item / Feature Considered | Decision | Justification & Architectural Rationale | Stage Owner |
 | :--- | :---: | :--- | :---: |
-| **Raw Credit Card Numbers (PAN/CVV)** | **DROPPED** | PCI-DSS compliance scope reduction. Talentra only persists gateway transaction references, order status, and amounts. | Define |
-| **Cleartext National Identity Numbers** | **DROPPED** | Data privacy and statutory risk. Talentra only stores verification outcome tokens and cryptographic hashes. | Define |
-| **Employer Internal Sub-Roles in v1** | **DROPPED** | Explicitly excluded by Problem Docket Section 3. Deferred to v2 roadmap to keep core multi-tenant RLS clean. | Define |
-| **Unified Requisition for Gigs & Full-Time**| **DROPPED** | Gigs require calendar availability, proposal bidding, and external handoff. Forcing them into full-time jobs creates NULL-polluted tables. | Define |
-| **8 Discrete Workforce Categories** | **KEPT** | Essential for Northbridge’s core business model (gig, general staffing, professional staffing, campus, permanent, etc.). | Discover |
-| **Database-Tier Device & Concurrency Limit** | **KEPT** | Prevents commercial revenue leakage from multi-user seat sharing. Enforced in database stored procedure via row locking. | Define |
-| **9 External Integration Boundary Contracts** | **KEPT** | Eliminates architectural ambiguity regarding third-party outages, idempotency, and data ownership. | Discover |
+| **Raw Credit Card Numbers (PAN/CVV)** | **DROPPED** | PCI-DSS compliance scope reduction. Talentra only persists gateway transaction references, order status, and amounts. | Architecture |
+| **Cleartext National Identity Numbers** | **DROPPED** | Data privacy and statutory risk. Talentra only stores verification outcome tokens and cryptographic hashes. | Architecture |
+| **Employer Internal Sub-Roles in v1** | **DROPPED** | Explicitly excluded by Problem Docket Section 3. Deferred to v2 roadmap to keep core multi-tenant RLS clean. | Architecture |
+| **Unified Requisition for Gigs & Full-Time**| **DROPPED** | Gigs require calendar availability, proposal bidding, and external handoff. Forcing them into full-time jobs creates NULL-polluted tables. | Architecture |
+| **8 Discrete Workforce Categories** | **KEPT** | Essential for Northbridge’s core business model (gig, general staffing, professional staffing, campus, permanent, etc.). | Requirements Analysis |
+| **Database-Tier Device & Concurrency Limit** | **KEPT** | Prevents commercial revenue leakage from multi-user seat sharing. Enforced in database stored procedure via row locking. | Architecture |
+| **9 External Integration Boundary Contracts** | **KEPT** | Eliminates architectural ambiguity regarding third-party outages, idempotency, and data ownership. | Requirements Analysis |
 
 ---
 
@@ -64,7 +64,7 @@ As mandated by Stage 2 (*Define*) of the Process Playbook, all structural decisi
 * `workforce_types`: Supported engagement categories. Covers all 8: `GIG_PROJECT`, `GENERAL_STAFFING`, `PROFESSIONAL_STAFFING`, `PERMANENT_FT`, `APPRENTICE`, `CAMPUS_FRESHER`, `CONSULTANT_MARKETPLACE`, `MANAGED_REMOTE`.
 
 ### Section L1.2: External Integration Boundaries (9 Services)
-Defines the interface rules for all 9 third-party systems:
+Architectures the interface rules for all 9 third-party systems:
 * `service_name`: External service (Payment Gateway, KYC Verification, Corporate Registry, Gig Fulfilment, Legacy Sync, Messaging Hub, Social Sharing, Geocoding Maps, Salary Feeds).
 * `source_of_truth`: Specifies data ownership (`TALENTRA_OWNED`, `EXTERNAL_OWNED`, `BIDIRECTIONAL_RECONCILED`).
 * `persisted_fields`: Explicitly lists what is saved locally vs referenced by token.

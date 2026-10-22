@@ -80,12 +80,12 @@ Talentra Diverges:    • Omission of algorithmic doom-scrolling social feeds
 
 ---
 
-## 4. Quality Verification: Lakshya's 5-Branch Test Taxonomy (Student Notes Page 33)
+## 4. Quality Verification: Feature & Invariant Test Taxonomy
 
-Following the 5-branch test case graph taught in the Student Learning Notes, feature correctness and relational integrity are verified across distinct architectural branches:
+Feature correctness and relational integrity are verified across five core architectural branches:
 
 ```
-Feature Test Graph (Student Notes p. 33)
+Feature Test Graph
  ├── 1. Structure & Project Best Practices (Singular tables, surrogate UUIDs, index patterns)
  ├── 2. Data Integrity & Data Quality (Money precision, rating boundaries, date logic)
  ├── 3. Business Rules & Behaviour (Screening knockout triggers, wallet sync atomicity)

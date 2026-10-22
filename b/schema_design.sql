@@ -207,7 +207,7 @@ USING (
 );
 
 -- -----------------------------------------------------------------------------
--- 6. Realistic Seed Fixture (Student Notes Page 15: High-Value Realistic Data)
+-- 6. Realistic Seed Fixtures: Verified Domain Data Demonstration
 -- -----------------------------------------------------------------------------
 
 -- Realistic Users: Candidate Asha, Employer Rohan, Recruiter Meera

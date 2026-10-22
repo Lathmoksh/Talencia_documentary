@@ -195,7 +195,7 @@ AFTER INSERT ON billing.wallet_ledger
 FOR EACH ROW EXECUTE FUNCTION billing.sync_wallet_balance();
 
 -- -----------------------------------------------------------------------------
--- 4. Realistic Seed Fixture (Student Notes Page 15: High-Value Realistic Data)
+-- 4. Realistic Seed Fixtures: Verified Domain Data Demonstration
 -- -----------------------------------------------------------------------------
 
 -- Realistic Candidate Profile for Asha

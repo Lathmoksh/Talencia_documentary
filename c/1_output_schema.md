@@ -1,4 +1,4 @@
-# Talentra — Feature Discovery Schema Specification
+# Talentra — Feature Requirements Analysisy Schema Specification
 **Document**: Deliverable C1 — Output Schema Definition  
 **System**: Talentra Demand Management Platform  
 **Owner**: Product & Database Engineering  
@@ -8,19 +8,19 @@
 
 ## 1. Schema Hierarchy & Level Metrics
 
-Following the *Control the Output* methodology (Playbook Pages 5–6 & 18), this schema organizes candidate platform features, competitive benchmarks, and physical database mappings into a 4-level nonlinear hierarchy:
+This schema organizes candidate platform features, competitive benchmarks, and physical database mappings into a 4-level architectural hierarchy:
 
 ```
-Feature Discovery Schema (Root)
+Feature Requirements Analysisy Schema (Root)
  ├── L1.0 Project Metadata & Governance
- ├── L1.1 Discovery Approach & MoSCoW Prioritization
+ ├── L1.1 Requirements Analysisy Approach & MoSCoW Prioritization
  ├── L1.2 Feature Catalog (20 Functional Capabilities)
  ├── L1.3 Competitive Coverage Benchmark (LinkedIn, Naukri, Monster)
  ├── L1.4 Database Subsystem Mappings (11 PostgreSQL Schemas)
  └── L1.5 Quality Verification Scenarios (SQL Invariant Tests)
 ```
 
-### Schema Metrics by Level (Playbook Page 6 & 18)
+### Schema Metrics & Structural Hierarchy
 
 | Level | Granularity | Measured Count | Status / Basis | Key Question Answered |
 | :--- | :--- | :---: | :--- | :--- |
@@ -31,19 +31,19 @@ Feature Discovery Schema (Root)
 
 ---
 
-## 2. Keep / Drop Decision Log (Playbook Stage 2 Checklist)
+## 2. Feature Scope & Prioritization Decision Log
 
-As mandated by Stage 2 (*Define*) of the Process Playbook, all structural decisions and scope exclusions are explicitly logged:
+All feature scoping decisions, architectural choices, and deliberate exclusions are recorded below:
 
 | Item / Feature Considered | Decision | Justification & Architectural Rationale | Stage Owner |
 | :--- | :---: | :--- | :---: |
-| **Algorithmic Social Doom-Scrolling Feed**| **DROPPED** | Competitor pitfall. Algorithmic newsfeeds cause engagement distraction and balloon storage costs. Talentra focuses strictly on hiring pipeline throughput and structured technical Q&A. | Define |
-| **Linear Unweighted Screening Questions** | **DROPPED** | Found in basic job portals. Inadequate for enterprise pre-qualification. Talentra implements versioned option trees with knockout rules and automated scoring. | Define |
-| **Separate Blue-Collar & White-Collar Portals**| **DROPPED** | Competitor fragmentation (e.g. Naukri vs specialist boards). Talentra unifies all 8 workforce categories in a single relational schema. | Define |
-| **20 Concrete Enterprise Features (F-01 to F-20)**| **KEPT** | Directly satisfies the workflows and data domains from Problem Docket Sections 2 and 4. | Discover |
-| **3-Competitor Benchmarking Matrix** | **KEPT** | Directly fulfills Problem Docket Section 4 mandate to benchmark against LinkedIn, Naukri, and Monster. | Discover |
-| **PostgreSQL GiST Non-Overlapping Gig Calendar**| **KEPT** | Prevents gig worker double-booking at the database engine tier via exclusion constraints. | Define |
-| **Double-Entry Append-Only Wallet Ledger** | **KEPT** | Prevents financial tampering and dispute leakage. Reversals must reference original transaction IDs. | Define |
+| **Algorithmic Social Doom-Scrolling Feed**| **DROPPED** | Competitor pitfall. Algorithmic newsfeeds cause engagement distraction and balloon storage costs. Talentra focuses strictly on hiring pipeline throughput and structured technical Q&A. | Architecture |
+| **Linear Unweighted Screening Questions** | **DROPPED** | Found in basic job portals. Inadequate for enterprise pre-qualification. Talentra implements versioned option trees with knockout rules and automated scoring. | Architecture |
+| **Separate Blue-Collar & White-Collar Portals**| **DROPPED** | Competitor fragmentation (e.g. Naukri vs specialist boards). Talentra unifies all 8 workforce categories in a single relational schema. | Architecture |
+| **20 Concrete Enterprise Features (F-01 to F-20)**| **KEPT** | Directly satisfies the workflows and data domains from Problem Docket Sections 2 and 4. | Requirements Analysis |
+| **3-Competitor Benchmarking Matrix** | **KEPT** | Directly fulfills Problem Docket Section 4 mandate to benchmark against LinkedIn, Naukri, and Monster. | Requirements Analysis |
+| **PostgreSQL GiST Non-Overlapping Gig Calendar**| **KEPT** | Prevents gig worker double-booking at the database engine tier via exclusion constraints. | Architecture |
+| **Double-Entry Append-Only Wallet Ledger** | **KEPT** | Prevents financial tampering and dispute leakage. Reversals must reference original transaction IDs. | Architecture |
 
 ---
 
@@ -56,7 +56,7 @@ As mandated by Stage 2 (*Define*) of the Process Playbook, all structural decisi
 * `reviewer`: Senior database architect.
 * `status`: Approval state (`Approved Baseline`).
 
-### Section L1.1: Discovery Approach & Criteria
+### Section L1.1: Requirements Analysisy Approach & Criteria
 * `workflow_sources`: Workflows derived from Section 2 of the Hackathon Docket (Candidate profile building, screening questionnaires, consultant sourcing, gig bidding, wallet recharge).
 * `prioritization_framework`: MoSCoW rules:
   * **Must Have**: Non-negotiable core transactional capabilities, security boundaries, and billing controls.

@@ -7,27 +7,27 @@
 
 ---
 
-## 1. Standard Playbook Core Baseline (Playbook Page 12)
+## 1. Core Feature & Data Architecture Evaluation Dimensions
 
-Evaluated against the standard 8 Core Dimensions defined on Page 12 of the *Control the Output* Playbook:
+The deliverable is evaluated across eight core engineering dimensions:
 
-| # | Dimension | Critical? | Core Weight | How It Is Measured (Playbook Page 12 Formula) | Stage If Low |
+| # | Dimension | Critical? | Core Weight | Measurement Criteria & Evaluation Basis | Stage If Low |
 | :- | :--- | :---: | :---: | :--- | :--- |
-| **D1** | **Structure Conformance** | **YES** | **15** | Output fields that match the schema ÷ all output fields | Generate (Stage 3) |
-| **D2** | **Completeness** | NO | **15** | Fields with a value or an explicit UNKNOWN ÷ all fields; every section covered | Generate (Stage 3) |
-| **D3** | **Definition Clarity** | NO | **10** | Parameters with definition, type and reason ÷ all parameters | Define (Stage 2) |
-| **D4** | **Accuracy and Traceability** | **YES** | **20** | Items traced to the source or marked as assumptions ÷ all items | Generate (Stage 3) |
-| **D5** | **Consistency Across Runs** | NO | **10** | Parameters whose values agree across runs ÷ parameters compared | Analyse (Stage 4) |
-| **D6** | **Structure and Depth** | NO | **10** | Levels justified; no parent with too many children; every leaf atomic | Define (Stage 2) |
-| **D7** | **Fitness for the Next Step** | NO | **10** | Inputs the next step needs that this output provides ÷ inputs needed | Define (Stage 2) |
-| **D8** | **Author Understanding** | **YES** | **10** | Sample questions on fields answered correctly by the author ÷ questions asked | Discover (Stage 1) |
+| **D1** | **Structure Conformance** | **YES** | **15** | Output fields that match the schema ÷ all output fields | Implementation |
+| **D2** | **Completeness** | NO | **15** | Fields with a value or an explicit UNKNOWN ÷ all fields; every section covered | Implementation |
+| **D3** | **Definition Clarity** | NO | **10** | Parameters with definition, type and reason ÷ all parameters | Architecture |
+| **D4** | **Accuracy and Traceability** | **YES** | **20** | Items traced to the source or marked as assumptions ÷ all items | Implementation |
+| **D5** | **Consistency Across Runs** | NO | **10** | Parameters whose values agree across runs ÷ parameters compared | Review & Testing |
+| **D6** | **Structure and Depth** | NO | **10** | Levels justified; no parent with too many children; every leaf atomic | Architecture |
+| **D7** | **Fitness for the Next Step** | NO | **10** | Inputs the next step needs that this output provides ÷ inputs needed | Architecture |
+| **D8** | **Author Understanding** | **YES** | **10** | Sample questions on fields answered correctly by the author ÷ questions asked | Domain Discovery |
 | **--** | **CORE TOTAL** | -- | **100** | **Decision Rule: Score ≥ 90 and every critical dimension ≥ 4** | -- |
 
 ---
 
-## 2. Deliverable-Specific Re-Weighted Matrix (Playbook Page 14)
+## 2. Weighted Scorecard Matrix & Pass History
 
-Following Page 14 of the Playbook, two specific dimensions are incorporated for Feature Discovery:
+Two domain-specific dimensions are incorporated to evaluate competitive parity and relational database mapping:
 * **S1: Competitor Coverage Benchmark**: At least three competitors covered against profile elements (Weight: 5%).
 * **S2: Feature-to-Schema Traceability**: Every feature mapped to relational tables and physical constraints (Weight: 5%).
 * *Core weights are re-balanced to preserve the strict 100-point total:*
