@@ -1,0 +1,13 @@
+persona_id,role_code,identity_auth,organisation_tenancy,job_requirements,candidate_profiles,gig_marketplace,sourcing_screening,licensing_seats,wallet_billing,privacy_blocklist,system_audit,analytics_marts
+P-01,RECRUITER,R---,R---,CRUD,R---,----,CRUD,R---,R---,----,----,R---
+P-02,CANDIDATE,CRU-,R---,R---,CRUD,----,CR--,----,----,CRUD,----,----
+P-03,GIG_WORKER,CRU-,R---,----,----,CRUD,----,----,R---,----,----,R---
+P-04,EXECUTIVE,R---,R---,R---,----,----,R---,CRUD,CRU-,----,R---,CRUD
+P-05,STAFFING_CONSULTANT,R---,R---,R---,R---,----,CRUD,----,R---,----,----,R---
+P-06,ACCOUNT_ADMIN,CRUD,CRUD,R---,----,CRUD,R---,CRUD,CRU-,----,R---,R---
+P-07,ACADEMIC_PARTNER,R---,R---,R---,CRUD,----,CR--,----,----,----,----,R---
+P-08,COMPLIANCE_OFFICER,R---,R---,R---,R---,R---,R---,R---,R---,R---,R---,R---
+P-09,SMB_EMPLOYER,CRU-,CRUD,CRUD,R---,CRUD,CRUD,R---,CRU-,----,----,R---
+P-10,STATUTORY_REGULATOR,R---,R---,R---,R---,R---,R---,R---,R---,R---,R---,R---
+P-11,SUPPORT_SPECIALIST,R-U-,R---,R---,R---,R---,R---,R-U-,R-U-,----,R---,----
+P-12,SYSTEM_DAEMON,R-U-,----,----,R-U-,----,----,R-U-,R-U-,----,CR--,CRU-

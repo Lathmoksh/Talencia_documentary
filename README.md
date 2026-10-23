@@ -1,196 +1,127 @@
-# Talentra: Next-Generation Enterprise Workforce Platform
-## Phase 1: Discover — Architecture, Schemas & Operational Baseline (Steps 01 to 05)
-
-[![Database](https://img.shields.io/badge/Database-PostgreSQL%2015+-blue.svg)](https://www.postgresql.org/)
-[![Schema Validation](https://img.shields.io/badge/JSON%20Schema-Draft%202020--12-green.svg)](https://json-schema.org/)
-[![Lifecycle Gate](https://img.shields.io/badge/Phase%201%20Gate-G1%20Problem%20Understood-success.svg)]()
-[![Compliance](https://img.shields.io/badge/Compliance-DPDP%202023%20%7C%20GDPR%20%7C%20SOC2%20%7C%20ISO27001-purple.svg)]()
+# Talentra: Enterprise Workforce & Talent Marketplace Platform
+## Phase 1: Discover — Canonical Requirements, Actors, Features & Workflows
 
 ---
 
-## Executive Summary
+## 1. Executive Summary
 
-**Talentra** (developed for Northbridge Workforce Systems under the Talencia Global data-driven framework) is an enterprise-grade talent acquisition and workforce mobilization platform. It is engineered to bridge traditional full-time corporate hiring, contingent gig workforce procurement, and campus early-talent programs into a unified, secure, multi-tenant ecosystem.
+**Talentra** is an enterprise talent acquisition and workforce mobilization platform engineered to unify permanent lateral hiring, contingent gig labor contracting, and university graduate cohort drives within a single multi-tenant ecosystem.
 
-This repository encapsulates the complete deliverables for **Phase 1: Discover (Steps 01 through 05)**, fully satisfying the exit criteria for **Gate G1 ("Problem Understood")**:
-* *Every requirement has an ID and an actor.*
-* *Every NFR has a numeric target and verification harness.*
-* *Every must-have feature appears in an active business workflow.*
+This repository encapsulates the canonical, single-source-of-truth deliverables for **Phase 1: Discover (Steps 01 through 05)**, fully aligned with the principle: **"Understand before you model — nothing is modelled yet."** 
 
-Every deliverable provides a formal **4-Level Output Schema Hierarchy (L1 Macro to L4 Pico)**, a **Formal Evaluation Scorecard (scoring ≥96/100)**, an **Executive Synthesis Document**, an executable **PostgreSQL Physical DDL Prototype with Security Guardrails**, and a visual **Entity-Relationship Diagram (ERD)**.
+All physical data definitions, database schemas, and ER diagrams have been parked in [`phase2_draft/`](phase2_draft/) for upcoming implementation phases. The [`phase1/`](phase1/) directory contains pure business requirements, single-source actor vocabularies, user-facing feature mappings, end-to-end workflow specifications, and automated verification suites.
 
 ---
 
-## Repository Structure
-
-The repository is modularly structured into five isolated discovery directories:
+## 2. Directory Structure
 
 ```
 talencia2/
-├── README.md                           # Master project documentation & architecture guide
-├── a/                                  # Step 01: Requirement Analysis Docket
-│   ├── 1_output_schema.md              # 4-level schema hierarchy & parameter dictionary
-│   ├── 2_schema_rating_scorecard.md    # 8-dimension engineering rating scorecard (96/100)
-│   ├── 3_output_document.md            # Full requirements baseline & boundary analysis
-│   ├── schema_definition.json          # JSON Schema (Draft 2020-12 validation spec)
-│   ├── schema_design.sql               # PostgreSQL DDL, audit triggers & seed fixtures
-│   ├── er_diagram.png                  # Visual Entity-Relationship Diagram (Schema A)
-│   └── A_Requirement_Analysis_Docket.docx
-├── b/                                  # Step 02: Stakeholders, Personas & Roles
-│   ├── 1_output_schema.md              # 4-level actor & authorization schema hierarchy
-│   ├── 2_schema_rating_scorecard.md    # 8-dimension actor scorecard (96/100)
-│   ├── 3_output_document.md            # 10 Stakeholders, 9 Personas & 11-module CRUD matrix
-│   ├── schema_definition.json          # JSON Schema (Draft 2020-12 validation spec)
-│   ├── schema_design.sql               # Multi-tenant RLS, session lock & anti-join SQL
-│   ├── er_diagram.png                  # Visual Entity-Relationship Diagram (Schema B)
-│   └── B_Stakeholders_Personas_and_Roles.docx
-├── c/                                  # Step 03: Feature Discovery
-│   ├── 1_output_schema.md              # 4-level capability & competitive schema hierarchy
-│   ├── 2_schema_rating_scorecard.md    # 8-dimension feature scorecard (96.5/100)
-│   ├── 3_output_document.md            # 20 Modular features (F-01..20) & 3-competitor matrix
-│   ├── schema_definition.json          # JSON Schema (Draft 2020-12 validation spec)
-│   ├── schema_design.sql               # GiST contract exclusions, double-entry wallet SQL
-│   ├── er_diagram.png                  # Visual Entity-Relationship Diagram (Schema C)
-│   └── C_Feature_Discovery.docx
-├── d/                                  # Step 04: NFR Discovery
-│   ├── 1_output_schema.md              # 4-level NFR & latency schema hierarchy
-│   ├── 2_schema_rating_scorecard.md    # 8-dimension NFR scorecard (96/100)
-│   ├── 3_output_document.md            # Scalability extrapolation, latency SLAs & DPDP register
-│   ├── schema_definition.json          # JSON Schema (Draft 2020-12 validation spec)
-│   ├── schema_design.sql               # Telemetry benchmarks, DPDP consent & key registry SQL
-│   ├── er_diagram.png                  # Visual Entity-Relationship Diagram (Schema D)
-│   └── D_NFR_Discovery.docx
-└── e/                                  # Step 05: Business Workflow Analysis
-    ├── 1_output_schema.md              # 4-level workflow lifecycle & exception schema hierarchy
-    ├── 2_schema_rating_scorecard.md    # 8-dimension workflow scorecard (96.5/100)
-    ├── 3_output_document.md            # End-to-end lifecycles (WF-01..07) & exception catalogue
-    ├── schema_definition.json          # JSON Schema (Draft 2020-12 validation spec)
-    ├── schema_design.sql               # State machine validation trigger & retry queue SQL
-    ├── er_diagram.png                  # Visual Entity-Relationship Diagram (Schema E)
-    └── E_Business_Workflow_Analysis.docx
+├── README.md                           # Master system overview and discovery documentation
+├── phase1/                             # Pure Phase 1 Discover Single-Source-of-Truth
+│   ├── 00_decision_log.md              # Architectural decisions (ADR-01..10) & policy assumptions register
+│   ├── 01_requirements.csv             # 29 pure business requirements (REQ-01..29) with status column
+│   ├── 02_actors.md                    # Single canonical vocabulary across 12 personas (P-01..12)
+│   ├── role_permission.csv             # Exhaustive 12-persona x 11-module CRUD authorization matrix
+│   ├── 03_features.csv                 # 23 user-facing features (F-01..23) with trace_note column
+│   ├── 04_nfr_register.csv             # 14 measurable NFRs with metrics, targets & derivations
+│   ├── brief_extract.md                # Reconstructed reference extract for BRIEF-SEC-*. citations
+│   ├── competitor_matrix.csv           # 15 capabilities benchmarked with per-competitor verdicts & deep links
+│   ├── volumetric_model.py             # Workload modeling script deriving throughput & capacity targets
+│   ├── volumetric_model.csv            # Sizing model output (189.4 TPS peak write load, 284 TPS capacity target)
+│   ├── g1_check.py                     # Primary automated Gate 1 structural verification harness (7 checks)
+│   ├── g1_extra_checks.py              # Secondary automated Gate 1 reference, substance & sync checker
+│   └── 05_workflows/                   # End-to-end lifecycle workflows (6-parameter tuples)
+│       ├── WF-01_candidate_onboarding.md
+│       ├── WF-02_requisition_publication.md
+│       ├── WF-03_application_pipeline.md
+│       ├── WF-04_sourcing_and_unlock.md
+│       ├── WF-05_gig_contracting.md
+│       ├── WF-06_subscription_licensing.md
+│       ├── WF-07_wallet_and_payout.md
+│       └── exceptions.csv              # 36 failure paths (CANCEL, REFUND, RETRY, TIMEOUT)
+├── phase2_draft/                       # Parked physical DDL schemas & ERDs for subsequent phases
+│   ├── README.md                       # Warning notice & known pre-model draft defects list
+│   ├── a_schema_design.sql & a_er_diagram.png
+│   ├── b_schema_design.sql & b_er_diagram.png
+│   ├── c_schema_design.sql & c_er_diagram.png
+│   ├── d_schema_design.sql & d_er_diagram.png
+│   └── e_schema_design.sql & e_er_diagram.png
+└── archive/                            # Superseded legacy documents (Folders a through e)
+    └── README.md                       # Superseded artifacts notice
 ```
 
 ---
 
-## Deliverables Deep-Dive
+## 3. Discovery Core Artifacts
 
-### Step 01: Requirement Analysis Docket (`a/`)
-- **Focus**: Business context, high-scale workload boundaries, external integrations, enterprise compliance, and architectural decision records (ADRs).
-- **Core Artifacts**:
-  - **Integration Registry**: Explicit boundary contracts for 9 external systems (Workday, SAP, FirstAdvantage, Stripe, Auth0, etc.).
-  - **Functional Requirements**: 14 strictly typed requirements (`REQ-01` to `REQ-14`) with priority rankings, primary actor mappings, and acceptance tests.
-  - **Physical DDL (`a/schema_design.sql`)**: Implements `audit.system_audit_event` with before/after `JSONB` state tracking, `integration.external_system_registry`, and append-only tamper-proof triggers.
-  - **ER Diagram**: [`a/er_diagram.png`](file:///c:/Users/hp/OneDrive/Desktop/talencia2/a/er_diagram.png).
+### 3.1 Business Requirements ([`phase1/01_requirements.csv`](phase1/01_requirements.csv))
+29 atomic business requirements (`REQ-01` to `REQ-29`) stating business needs rather than implementation solutions:
+- **Columns**: `REQ-id`, `statement`, `brief_ref`, `priority`, `actors`, `open_question`, `status`.
+- Requirements `REQ-01` to `REQ-25` trace to brief clauses detailed in [`phase1/brief_extract.md`](phase1/brief_extract.md).
+- Requirements `REQ-26` to `REQ-29` represent candidate-side capabilities (Faceted Search, Job Alerts, Direct Messaging, and Application Journey Tracking) introduced from competitive discovery (`COMP-DISC-*`).
+- Zero physical implementation solution leaks (no physical database engine terms, hashing algorithms, or internal locking mechanics in requirements statements).
 
-### Step 02: Stakeholders, Personas & Roles (`b/`)
-- **Focus**: Enterprise organizational hierarchy, granular user personas, role-based authorization matrices, and multi-tenant security guardrails.
-- **Core Artifacts**:
-  - **Stakeholder Taxonomy**: 10 enterprise groups (`STK-01` to `STK-10`) spanning Executive Leadership to External Gig Talent.
-  - **Actor Personas**: 9 rich persona archetypes (`P-01` Asha the Corporate Recruiter, `P-02` Rohan the Candidate, `P-03` Kabir the Gig Worker, etc.).
-  - **Database Guardrails (`b/schema_design.sql`)**:
-    - **Row-Level Security (RLS)**: Enforces tenant isolation on `recruitment.job_requirement` using `app.current_org_id`.
-    - **Candidate Privacy Anti-Join**: View hiding candidates from current employers/competitors (`candidate_block_list`).
-    - **Single-Active-Session Lock**: Stored procedure `enforce_single_active_session()` preventing multi-device credential sharing.
-  - **ER Diagram**: [`b/er_diagram.png`](file:///c:/Users/hp/OneDrive/Desktop/talencia2/b/er_diagram.png).
+### 3.2 Canonical Actors & Role Permissions ([`phase1/02_actors.md`](phase1/02_actors.md) & [`phase1/role_permission.csv`](phase1/role_permission.csv))
+- **12 Canonical Personas**:
+  - `P-01`: Recruiter / Talent Acquisition Specialist (`RECRUITER`)
+  - `P-02`: Job Seeker / Professional Candidate (`CANDIDATE`)
+  - `P-03`: Freelance Professional / Contingent Gig Worker (`GIG_WORKER`)
+  - `P-04`: Corporate Executive / Business Owner (`EXECUTIVE`)
+  - `P-05`: External Staffing Consultant (`STAFFING_CONSULTANT`)
+  - `P-06`: Account Administrator / Billing Owner (`ACCOUNT_ADMIN`)
+  - `P-07`: University Placement Officer / Academic Partner (`ACADEMIC_PARTNER`)
+  - `P-08`: Data Privacy Officer / Compliance Officer (`COMPLIANCE_OFFICER`)
+  - `P-09`: SMB Client / Project Manager (`SMB_EMPLOYER`)
+  - `P-10`: Statutory Auditor / Regulatory Authority (`STATUTORY_REGULATOR`)
+  - `P-11`: Support Specialist / Platform Arbiter (`SUPPORT_SPECIALIST`)
+  - `P-12`: System Automation Engine (`SYSTEM_DAEMON`)
+- **Enforced Security Invariants**:
+  - `system_audit` is strictly append-only: Compliance Officer (`P-08`) and Auditors inspect logs read-only (`R---`), while System Daemon records operational events (`CR--`). No update or delete operations are permitted.
+  - `wallet_billing` enforces double-entry ledger invariants: Delete operations (`D`) are globally forbidden across all human and administrative roles.
 
-### Step 03: Feature Discovery (`c/`)
-- **Focus**: Strategic market differentiation, competitor benchmarking (vs LinkedIn, Naukri, Monster), and monetization mechanics.
-- **Core Artifacts**:
-  - **Competitive Matrix**: In-depth analysis across 8 core dimensions demonstrating Talentra's competitive advantages.
-  - **Feature Catalog**: 20 modular capabilities (`F-01` to `F-20`) grouped into 6 architectural pillars.
-  - **Physical DDL (`c/schema_design.sql`)**:
-    - **GiST Exclusion Constraints**: Mathematical guarantee on `gig.gig_contract` (`EXCLUDE USING gist`) to prevent overlapping contract dates.
-    - **Double-Entry Wallet Ledger**: Append-only transaction log (`billing.wallet_ledger`) with automated balance synchronization triggers.
-  - **ER Diagram**: [`c/er_diagram.png`](file:///c:/Users/hp/OneDrive/Desktop/talencia2/c/er_diagram.png).
+### 3.3 User-Facing Features ([`phase1/03_features.csv`](phase1/03_features.csv))
+23 user-facing features (`F-01` to `F-23`) prioritized using MoSCoW methodology, each accompanied by an explicit `trace_note` documenting the exact architectural and functional rationale connecting the feature to its mapped business requirements.
 
-### Step 04: NFR Discovery (`d/`)
-- **Focus**: Measurable quality targets, physical latency budgets, scalability extrapolation, and statutory privacy frameworks.
-- **Core Artifacts**:
-  - **Scalability Extrapolation**: Laptop benchmark (1M profiles, 62.2 GB) mathematically extrapolated to 10M–100M rows and 1.9 TB storage.
-  - **Empirical Latency SLAs**: Warm-cache p50/p95/p99 query percentiles (e.g. Candidate Search p95 = 0.32 ms against target SLA < 10.0 ms).
-  - **Disaster Recovery Targets**: RPO < 1.0 minute (synchronous WAL streaming replication), RTO < 15.0 minutes (`pg_basebackup` restore drills).
-  - **Regulatory Register**: Explicit implementations for DPDP Act 2023, GDPR Article 17/25/32, SOC 2 Type II, and PCI-DSS boundary isolation.
-  - **Physical DDL (`d/schema_design.sql`)**: PII key registry (`AES-256-GCM`), DPDP consent tracking with auto-erasure triggers, and query latency telemetry.
-  - **ER Diagram**: [`d/er_diagram.png`](file:///c:/Users/hp/OneDrive/Desktop/talencia2/d/er_diagram.png).
+### 3.4 Operational Workflows ([`phase1/05_workflows/`](phase1/05_workflows/))
+7 end-to-end lifecycle workflows defined via 6-parameter tuples (*Trigger, Steps, Actors, Decisions, Exceptions, Outputs*) with explicit state machines:
+- **WF-01**: Candidate Onboarding, Privacy Shield & Consent Lifecycle
+- **WF-02**: Job Requisition Publishing, Screening & Multi-Channel Syndication
+- **WF-03**: Candidate Application Pipeline (Complete 13-stage progression from `SUBMITTED` through `HIRED` / `WITHDRAWN`)
+- **WF-04**: Candidate Sourcing, Agency Marketplace & Resume Contact Unlocking (Includes 30-day DPDP withdrawal credit refund)
+- **WF-05**: Freelance Gig Engagement, Conflict-Free Scheduling & Milestone Delivery
+- **WF-06**: Enterprise Subscription, Recruiter Seat Caps & Concurrency Protection
+- **WF-07**: Wallet Deposit, Double-Entry Escrow & Freelancer Bank Payout
+- **`exceptions.csv`**: 36 concrete exception paths covering all 4 failure categories (`CANCEL_PATH`, `REFUND_PATH`, `RETRY_PATH`, `TIMEOUT_PATH`) across all workflows.
 
-### Step 05: Business Workflow Analysis (`e/`)
-- **Focus**: End-to-end operational lifecycles, finite state machines, decision gateways, and exception handling.
-- **Core Artifacts**:
-  - **Master Lifecycle Inventory**: 7 operational workflows (`WF-01` to `WF-07`) covering candidate onboarding, multi-tenant requisition publication, gig contracts, licensing, and payouts.
-  - **Exception & Compensation Catalogue**: Explicit mitigation paths for 7 failure modes (`EXC-01` to `EXC-07`) including gig collisions, balance exhaustion, and webhook timeouts.
-  - **Feature Traceability**: 100% of the 20 features from Deliverable C are verified across active workflows.
-  - **Physical DDL (`e/schema_design.sql`)**: Finite state machine validation trigger blocking illegal status jumps (e.g. `SUBMITTED` directly to `HIRED`), append-only transition history, and dead-letter exception queue.
-  - **ER Diagram**: [`e/er_diagram.png`](file:///c:/Users/hp/OneDrive/Desktop/talencia2/e/er_diagram.png).
-
----
-
-## 4-Level Schema Hierarchy (Macro to Pico)
-
-Every deliverable enforces a strict 4-level schema decomposition model to guarantee zero orphan tables, zero unmapped requirements, and 100% leaf coverage:
-
-| Level | Granularity | Scope | Role in Architecture |
-| :--- | :--- | :--- | :--- |
-| **Level 1** | **Macro** *(Satellite View)* | Major Functional Sections | High-level architectural boundaries (e.g. Identity, Telemetry, Lifecycles). |
-| **Level 2** | **Micro** *(City View)* | Parameters & Relational Models | Specific business attributes (`req_id`, `actor_role_code`, `workflow_code`). |
-| **Level 3** | **Nano** *(Street View)* | Classifications & Allowed Values | Discrete taxonomies, ENUMs, and status transitions (`MUST_HAVE`, `ACTIVE`). |
-| **Level 4** | **Pico** *(Microscopic View)* | Atomic Database Guardrails | Exact PostgreSQL DDL constraints, RLS policies, GiST indices, and triggers. |
+### 3.5 Volumetric Capacity Model ([`phase1/volumetric_model.py`](phase1/volumetric_model.py))
+Mathematical workload derivations generated in [`phase1/volumetric_model.csv`](phase1/volumetric_model.csv):
+- **Job Applications**: 5,000,000 annual applications across 250 business days; 8 database writes per application; 25x seasonal burst factor yielding **138.9 application write TPS**.
+- **Contingent Gig Milestones**: 200,000 monthly milestones across 22 days; 4 ledger writes per milestone; 15x payroll burst factor yielding **18.9 financial write TPS**.
+- **Profile Updates & Consent**: 1,000,000 candidates averaging 2 updates/month (90,909 updates/day); 10x burst factor yielding **31.6 profile write TPS**.
+- **Candidate Talent Search**: 10,000 recruiters executing 40 searches/day; 10x burst factor yielding **138.9 search queries/sec (QPS)**.
+- **Total Peak Write Workload**: Sum of application (138.9) + gig ledger (18.9) + profile writes (31.6) = **189.4 peak write TPS**.
+- **Designed Storage/Engine Capacity**: 189.4 TPS $\times$ 1.5 safety headroom multiplier = **284 TPS capacity target**.
 
 ---
 
-## End-to-End Traceability Matrix
+## 4. Verification Harnesses & Quality Status
 
-The platform architecture follows an unbroken line of custody from initial business stakeholder needs to physical database engine execution:
-
-```mermaid
-flowchart LR
-    STK["Enterprise Stakeholders\n(STK-01..10)"] 
-    --> ACT["Actor Personas\n(P-01..09)"]
-    ACT --> REQ["Requirements Baseline\n(REQ-01..14)"]
-    REQ --> FEAT["Modular Features\n(F-01..20)"]
-    FEAT --> NFR["Quality Targets\n(NFR-01..10)"]
-    NFR --> WF["Business Workflows\n(WF-01..07)"]
-    WF --> DDL["PostgreSQL Physical DDL\n(RLS, GiST, Triggers, State Machines)"]
-```
-
----
-
-## Getting Started & Local Validation
-
-### Prerequisites
-- PostgreSQL 15+ (with `btree_gist`, `pgcrypto`, and `uuid-ossp` extensions enabled)
-- Any standard SQL client (psql, DBeaver, pgAdmin)
-
-### Running Schema Scripts
-To instantiate and verify the complete Phase 1 schema partitions locally:
+Phase 1 provides two automated verification suites located in `phase1/`:
 
 ```bash
-# 1. Step 01: Audit, Integrations & Classifications
-psql -U postgres -d talentra_db -f a/schema_design.sql
+# 1. Primary structural & traceability verification (7 checks):
+python phase1/g1_check.py
 
-# 2. Step 02: Identity, Organizations, RLS & Sessions
-psql -U postgres -d talentra_db -f b/schema_design.sql
-
-# 3. Step 03: Candidate Profiles, Gig Scheduling & Wallet Ledger
-psql -U postgres -d talentra_db -f c/schema_design.sql
-
-# 4. Step 04: Telemetry Benchmarks, PII Encryption & DPDP Consent
-psql -U postgres -d talentra_db -f d/schema_design.sql
-
-# 5. Step 05: Workflow State Machines, Transitions & Exception Queues
-psql -U postgres -d talentra_db -f e/schema_design.sql
+# 2. Reference integrity, substance, non-circular NFR & persona-sync checker:
+python phase1/g1_extra_checks.py
 ```
 
-Each script is self-contained with PostgreSQL schema initialization, table definitions, foreign keys, procedural triggers, test fixtures, and verification queries.
+### Current Quality Status
+**Pre-checks pass; awaiting formal reviewer sign-off.**
 
----
+### Gate 1 Review Log
 
-## Quality Assurance & Scorecard Summary
-
-Each deliverable has been evaluated against an 8-dimension formal scorecard across 3 review passes:
-- **Step 01 (Deliverable A — Requirements)**: **96.0 / 100** *(Enterprise Grade)*
-- **Step 02 (Deliverable B — Stakeholders & Roles)**: **96.0 / 100** *(Enterprise Grade)*
-- **Step 03 (Deliverable C — Feature Discovery)**: **96.5 / 100** *(Enterprise Grade)*
-- **Step 04 (Deliverable D — NFR Discovery)**: **96.0 / 100** *(Enterprise Grade)*
-- **Step 05 (Deliverable E — Workflow Analysis)**: **96.5 / 100** *(Enterprise Grade)*
-
-**Phase 1 Gate G1 Exit Status**: **PASSED (All 5 Steps Fully Audited and Frozen)**
+| Date | Reviewer | Role | Review Scope / Focus | Status / Verdict |
+| :--- | :--- | :--- | :--- | :--- |
+| 2026-10-23 | Senior Architecture Reviewer | Peer Reviewer | Structural gate review, reference substance, NFR non-circularity, persona sync & deep-link audit | Pre-checks pass; formal audit pending |
