@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://talentra.internal/schemas/nfr-discovery.json",
+  "title": "Talentra Non-Functional Requirements (NFR) Schema",
+  "description": "Validation schema for Talentra quality targets, scale extrapolations, performance budgets, and regulatory compliance.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "benchmark_environment",
+    "volumetric_projections",
+    "latency_budgets",
+    "resilience_targets",
+    "security_standards",
+    "regulatory_compliance",
+    "nfr_register"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["docket_id", "version", "last_updated", "author", "reviewed_by", "status"],
+      "properties": {
+        "docket_id": { "type": "string", "pattern": "^TAL-NFR-[0-9]{4}$" },
+        "version": { "type": "string" },
+        "last_updated": { "type": "string", "format": "date" },
+        "author": { "type": "string" },
+        "reviewed_by": { "type": "string" },
+        "status": { "type": "string", "enum": ["Draft", "In Review", "Approved", "Superseded"] }
+      }
+    },
+    "benchmark_environment": {
+      "type": "object",
+      "required": ["cpu_threads", "ram_gb", "storage_type", "database_engine", "shared_buffers_gb"],
+      "properties": {
+        "cpu_threads": { "type": "integer", "minimum": 8 },
+        "ram_gb": { "type": "integer", "minimum": 16 },
+        "storage_type": { "type": "string" },
+        "database_engine": { "type": "string" },
+        "shared_buffers_gb": { "type": "integer", "minimum": 4 }
+      }
+    },
+    "volumetric_projections": {
+      "type": "object",
+      "required": ["laptop_scale", "production_scale"],
+      "properties": {
+        "laptop_scale": {
+          "type": "object",
+          "required": ["candidates", "jobs", "applications", "gig_workers", "total_storage_gb"],
+          "properties": {
+            "candidates": { "type": "integer", "minimum": 1000000 },
+            "jobs": { "type": "integer", "minimum": 100000 },
+            "applications": { "type": "integer", "minimum": 5000000 },
+            "gig_workers": { "type": "integer", "minimum": 250000 },
+            "total_storage_gb": { "type": "number" }
+          }
+        },
+        "production_scale": {
+          "type": "object",
+          "required": ["candidates_min", "candidates_max", "raw_storage_projection_tb"],
+          "properties": {
+            "candidates_min": { "type": "integer" },
+            "candidates_max": { "type": "integer" },
+            "raw_storage_projection_tb": { "type": "number" }
+          }
+        }
+      }
+    },
+    "latency_budgets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["query_id", "query_name", "target_p95_ms", "target_sla_ms"],
+        "properties": {
+          "query_id": { "type": "string", "pattern": "^Q[0-9]+$" },
+          "query_name": { "type": "string" },
+          "target_p95_ms": { "type": "number" },
+          "target_sla_ms": { "type": "number" }
+        }
+      }
+    },
+    "resilience_targets": {
+      "type": "object",
+      "required": ["rpo_minutes", "rto_minutes", "availability_percentage"],
+      "properties": {
+        "rpo_minutes": { "type": "number", "maximum": 1.0 },
+        "rto_minutes": { "type": "number", "maximum": 15.0 },
+        "availability_percentage": { "type": "number", "minimum": 99.9 }
+      }
+    },
+    "security_standards": {
+      "type": "object",
+      "required": ["pii_encryption", "blind_indexing", "rls_isolation", "audit_immutability"],
+      "properties": {
+        "pii_encryption": { "type": "string", "enum": ["AES-256-GCM", "CHACHA20-POLY1305"] },
+        "blind_indexing": { "type": "string", "enum": ["HMAC-SHA256"] },
+        "rls_isolation": { "type": "boolean" },
+        "audit_immutability": { "type": "boolean" }
+      }
+    },
+    "regulatory_compliance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["framework_code", "framework_name", "statutory_jurisdiction"],
+        "properties": {
+          "framework_code": { "type": "string", "enum": ["DPDP_2023", "GDPR", "ISO_27001", "SOC2_TYPE2", "PCI_DSS"] },
+          "framework_name": { "type": "string" },
+          "statutory_jurisdiction": { "type": "string" },
+          "compliance_mechanism": { "type": "string" }
+        }
+      }
+    },
+    "nfr_register": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "required": ["nfr_id", "category", "metric_name", "numeric_target", "test_harness"],
+        "properties": {
+          "nfr_id": { "type": "string", "pattern": "^NFR-[0-9]{2}$" },
+          "category": { "type": "string", "enum": ["THROUGHPUT", "LATENCY", "AVAILABILITY", "RESILIENCE", "SECURITY", "CONCURRENCY", "INTEGRITY", "COMPLIANCE"] },
+          "metric_name": { "type": "string" },
+          "numeric_target": { "type": "string" },
+          "test_harness": { "type": "string" }
+        }
+      }
+    }
+  }
+}
