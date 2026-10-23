@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://talentra.internal/schemas/nfr-discovery.json",
+  "title": "Talentra Non-Functional Requirements (NFR) Schema",
+  "description": "Validation schema for Talentra quality targets, scale extrapolations, performance budgets, and regulatory compliance.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "benchmark_environment",
+    "volumetric_derivation",
+    "latency_budgets",
+    "resilience_targets",
+    "security_standards",
+    "statutory_compliance",
+    "nfr_register"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["docket_id", "version", "last_updated", "author", "reviewed_by", "status"],
+      "properties": {
+        "docket_id": { "type": "string", "pattern": "^TAL-NFR-[0-9]{4}$" },
+        "version": { "type": "string" },
+        "last_updated": { "type": "string", "format": "date" },
+        "author": { "type": "string" },
+        "reviewed_by": { "type": "string" },
+        "status": { "type": "string", "enum": ["Draft", "In Review", "Approved", "Superseded"] }
+      }
+    },
+    "benchmark_environment": { "type": "object" },
+    "volumetric_derivation": {
+      "type": "object",
+      "required": ["record_geometry_formula", "laptop_scale_gb", "production_scale_tb"],
+      "properties": {
+        "record_geometry_formula": { "type": "string" },
+        "laptop_scale_gb": { "type": "number" },
+        "production_scale_tb": { "type": "number" }
+      }
+    },
+    "latency_budgets": { "type": "array" },
+    "resilience_targets": { "type": "object" },
+    "security_standards": { "type": "object" },
+    "statutory_compliance": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "required": ["regulation_name", "statutory_section", "mandate_description", "database_implementation"],
+        "properties": {
+          "regulation_name": { "type": "string" },
+          "statutory_section": { "type": "string" },
+          "mandate_description": { "type": "string" },
+          "database_implementation": { "type": "string" }
+        }
+      }
+    },
+    "nfr_register": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "required": ["nfr_id", "category", "metric_name", "numeric_target", "test_harness"],
+        "properties": {
+          "nfr_id": { "type": "string", "pattern": "^NFR-[0-9]{2}$" },
+          "category": { "type": "string" },
+          "metric_name": { "type": "string" },
+          "numeric_target": { "type": "string" },
+          "test_harness": { "type": "string" }
+        }
+      }
+    }
+  }
+}

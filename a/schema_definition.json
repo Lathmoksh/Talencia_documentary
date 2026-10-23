@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://talentra.internal/schemas/requirements-docket.json",
+  "title": "Talentra Requirements Analysis Docket Schema",
+  "description": "Validation schema for Talentra project requirements docket, open questions, and integration boundaries.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "project_overview",
+    "system_boundaries",
+    "ranked_open_questions",
+    "functional_requirements",
+    "non_functional_standards",
+    "database_standards"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["docket_id", "version", "last_updated", "author", "reviewed_by", "status"],
+      "properties": {
+        "docket_id": { "type": "string", "pattern": "^TAL-REQ-[0-9]{4}$" },
+        "version": { "type": "string" },
+        "last_updated": { "type": "string", "format": "date" },
+        "author": { "type": "string" },
+        "reviewed_by": { "type": "string" },
+        "status": { "type": "string", "enum": ["Draft", "In Review", "Approved", "Superseded"] }
+      }
+    },
+    "project_overview": {
+      "type": "object",
+      "required": ["problem_summary", "target_scale", "workforce_types"],
+      "properties": {
+        "problem_summary": { "type": "string" },
+        "target_scale": {
+          "type": "object",
+          "required": ["laptop_benchmark", "production_projection"],
+          "properties": {
+            "laptop_benchmark": { "type": "object" },
+            "production_projection": { "type": "object" }
+          }
+        },
+        "workforce_types": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "system_boundaries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["domain_name", "in_scope_responsibilities", "out_of_scope_boundary"],
+        "properties": {
+          "domain_name": { "type": "string" },
+          "in_scope_responsibilities": { "type": "string" },
+          "out_of_scope_boundary": { "type": "string" }
+        }
+      }
+    },
+    "ranked_open_questions": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["rank", "question", "impact_level", "architectural_resolution"],
+        "properties": {
+          "rank": { "type": "string", "pattern": "^Q[0-9]+$" },
+          "question": { "type": "string" },
+          "impact_level": { "type": "string", "enum": ["Critical", "High", "Medium", "Low"] },
+          "architectural_resolution": { "type": "string" }
+        }
+      }
+    },
+    "functional_requirements": {
+      "type": "array",
+      "minItems": 20,
+      "items": {
+        "type": "object",
+        "required": ["req_id", "statement", "architectural_source", "priority", "target_actors", "ambiguity_resolution"],
+        "properties": {
+          "req_id": { "type": "string", "pattern": "^REQ-[0-9]{2}$" },
+          "statement": { "type": "string" },
+          "architectural_source": { "type": "string" },
+          "priority": { "type": "string", "enum": ["Must-Have", "Should-Have", "Could-Have"] },
+          "target_actors": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "ambiguity_resolution": { "type": "string" }
+        }
+      }
+    },
+    "non_functional_standards": { "type": "object" },
+    "database_standards": { "type": "object" }
+  }
+}

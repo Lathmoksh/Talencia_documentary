@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://talentra.internal/schemas/stakeholders-personas.json",
+  "title": "Talentra Stakeholders, Personas and Roles Schema",
+  "description": "Validation schema for Talentra stakeholders, personas, edge actors, and authorization matrix.",
+  "type": "object",
+  "required": [
+    "metadata",
+    "stakeholder_taxonomy",
+    "persona_catalog",
+    "crud_entitlement_matrix",
+    "database_guardrails"
+  ],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["docket_id", "version", "last_updated", "author", "reviewed_by", "status"],
+      "properties": {
+        "docket_id": { "type": "string", "pattern": "^TAL-STK-[0-9]{4}$" },
+        "version": { "type": "string" },
+        "last_updated": { "type": "string", "format": "date" },
+        "author": { "type": "string" },
+        "reviewed_by": { "type": "string" },
+        "status": { "type": "string", "enum": ["Draft", "In Review", "Approved", "Superseded"] }
+      }
+    },
+    "stakeholder_taxonomy": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "required": ["stakeholder_id", "category", "description", "primary_responsibility"],
+        "properties": {
+          "stakeholder_id": { "type": "string", "pattern": "^STK-[0-9]{2}$" },
+          "category": { "type": "string" },
+          "description": { "type": "string" },
+          "primary_responsibility": { "type": "string" }
+        }
+      }
+    },
+    "persona_catalog": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "type": "object",
+        "required": ["persona_id", "name", "role_code", "actor_type", "interaction_frequency", "associated_requirements", "key_guardrail"],
+        "properties": {
+          "persona_id": { "type": "string", "pattern": "^P-[0-9]{2}$" },
+          "name": { "type": "string" },
+          "role_code": { "type": "string" },
+          "actor_type": { "type": "string", "enum": ["CORE_HUMAN", "EDGE_REGULATOR", "EDGE_SUPPORT", "EDGE_SYSTEM"] },
+          "interaction_frequency": { "type": "string" },
+          "associated_requirements": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^REQ-[0-9]{2}$" }
+          },
+          "key_guardrail": { "type": "string" }
+        }
+      }
+    },
+    "crud_entitlement_matrix": {
+      "type": "array",
+      "minItems": 11,
+      "items": {
+        "type": "object",
+        "required": ["module_code", "entitlements"],
+        "properties": {
+          "module_code": { "type": "string" },
+          "entitlements": { "type": "object" }
+        }
+      }
+    },
+    "database_guardrails": { "type": "object" }
+  }
+}
