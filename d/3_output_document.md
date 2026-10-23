@@ -1,48 +1,55 @@
 # Talentra — Non-Functional Requirements (NFR) Discovery Document
-**Document**: Deliverable D3 — Stage 1 Discover Synthesis  
-**System**: Talentra Demand Management Platform  
-**Owner**: Core Performance & Infrastructure Architecture Team  
+**Document Reference**: Deliverable D3 — Measurable Quality Targets & Regulatory Architecture  
+**Platform**: Talentra Enterprise Workforce Platform  
+**Architecture Domain**: Performance, Scalability, Resilience & Compliance  
 **Status**: Approved & Frozen for Implementation  
 
 ---
 
-## 1. Executive Summary & Purpose
+## 1. Executive Purpose & Engineering Philosophy
 
-Non-functional requirements (NFRs) dictate the operational quality, scalability, security boundaries, and statutory compliance of the Talentra platform. In accordance with the Talencia Global Data-Driven Development Lifecycle (Stage 1 Step 04 — NFR Discovery), all quality targets in this docket are derived from physical hardware constraints, empirical database query profiling, and statutory regulations—not subjective guesses.
+Non-functional requirements (NFRs) define the operational quality, scalability envelope, security boundaries, and statutory survival of the Talentra platform. In accordance with Phase 1 Discover principles, all quality targets in this docket are **derived directly from empirical storage footprints, NVMe IOPS capacities, and mathematical workload models—not subjective guesses**.
 
-This document establishes the binding non-functional baseline across eight architectural dimensions:
-1. **Volumetric Scale & Storage Extrapolation** (Laptop baseline to 100M rows)
-2. **Query Latency & Execution Profiles** (p50, p95, p99 percentiles)
-3. **High Availability & Disaster Recovery** (RTO < 15 min, RPO < 1 min)
-4. **Data Protection & Cryptography** (AES-256-GCM, HMAC blind indexing)
+This docket establishes the binding non-functional baseline across eight core domains:
+1. **Empirical Scale & Volumetric Derivations** (Derived from mathematical record sizes)
+2. **Query Latency Budgets & SLA Profiles** (Warm-cache p50, p95, p99 percentiles)
+3. **High Availability, Resilience & Disaster Recovery** (RTO < 15 min, RPO < 1 min)
+4. **Data Protection, Cryptography & Storage Isolation** (AES-256-GCM, HMAC blind indexing)
 5. **Multi-Tenant Engine Isolation** (PostgreSQL Row-Level Security)
 6. **Regulatory Compliance Register** (DPDP Act 2023, GDPR, SOC 2, PCI-DSS)
 7. **Accessibility & Universal Usability** (WCAG 2.1 AA)
-8. **NFR Register & Automated Verification Methodologies** (NFR-01 through NFR-10)
+8. **Master NFR Register & Verification Harnesses** (NFR-01 through NFR-10)
 
 ---
 
-## 2. Scale & Volumetric Extrapolation Baseline
+## 2. Mathematical Volumetric Derivation & Scale Extrapolation
 
-Talentra validates physical feasibility at laptop scale and mathematically extrapolates index depth, buffer hit ratios, and storage footprints to full enterprise scale:
+### 2.1 Derivation from Record Geometry & Storage Physics
+Rather than guessing storage requirements, Talentra derives database sizing from atomic row structures:
 
-### 2.1 Benchmarking Hardware Specifications
-- **Processor**: 8 Cores / 16 Threads @ 3.8 GHz base, 5.1 GHz boost (AMD Ryzen 7 / Intel Core i7).
-- **RAM**: 32 GB DDR5-5600 MHz Dual-Channel.
-- **Storage**: 1 TB NVMe M.2 SSD (PCIe Gen4 x4, Sequential Read: 5,200 MB/s, 4K Random IOPS: 650,000).
-- **Engine Tuning**: PostgreSQL 16 Enterprise (`shared_buffers = 8GB`, `work_mem = 64MB`, `random_page_cost = 1.1`, `effective_io_concurrency = 200`).
+```
+[Candidate Record] = Base Profile (512 B) + Skills Array (1.2 KB) + Vectors (2 KB) + Contacts (256 B) ≈ 4.0 KB / row
+At 1,000,000 Candidate Profiles:
+  Raw Table Heap  = 1,000,000 × 4.0 KB   = 4.0 GB (uncompressed)
+  GIN Trigram Idx = 1,000,000 × 2.8 KB   = 2.8 GB
+  B-Tree UUID Idx = 1,000,000 × 32 B × 2 = 64 MB (Depth = 3 levels, Fanout = 100)
 
-### 2.2 Volumetric Capacity Matrix
+At Enterprise Platform Aggregation (Candidates + Jobs + 5M Applications + Gigs + Audit Events):
+  Laptop Benchmark Footprint = 38.4 GB Raw Heap + 23.8 GB Indexes = 62.2 GB Total
+  NVMe Random IOPS Required = 4K Read IOPS: 45,000 (Physical NVMe SSD Capacity: 650,000 IOPS -> Headroom: 93.1%)
+```
 
-| Entity / Dimension | Laptop Baseline (Empirical) | Production Extrapolation (10x–100x) | Storage & Indexing Strategy |
+### 2.2 Volumetric Capacity Matrix (Laptop Baseline vs. Production Extrapolation)
+
+| Entity / Dimension | Laptop Baseline (Empirical) | Production Extrapolation (10x–100x) | Storage & Physical Indexing Strategy |
 | :--- | :--- | :--- | :--- |
 | **Candidate Profiles** | 1,000,000 records | 10,000,000 – 50,000,000 records | B-tree on UUID PK, GIN trigram index on skills & full-text vector. |
 | **Job Requisitions** | 100,000 postings | 1,000,000 – 5,000,000 postings | Composite B-tree indexes on `(organisation_id, requirement_status)`. |
-| **Job Applications** | 5,000,000 applications | 50,000,000 – 100,000,000 applications | Date range partitioned; foreign key cluster to candidate and requisition. |
+| **Job Applications** | 5,000,000 applications | 50,000,000 – 100,000,000 applications | Monthly range partitioned; foreign key cluster to candidate and job. |
 | **Gig Worker Profiles** | 250,000 profiles | 2,500,000 – 5,000,000 profiles | B-tree on `user_account_id`; partial indexes on `background_verified = true`. |
 | **Gig Contracts** | 500,000 contracts | 5,000,000 – 10,000,000 contracts | GiST exclusion indexing on `daterange(start_date, end_date, '[]')`. |
-| **Audit Events** | 2,000,000 monthly events | 25,000,000+ monthly events | 13-month online monthly range partitions; append-only triggers. |
-| **Raw Table Storage** | 38.4 GB | 384 GB – 1.9 TB | NVMe SSD storage with table compression; cold partition archival. |
+| **Compliance Audit Events**| 2,000,000 monthly events | 25,000,000+ monthly events | 13-month online monthly range partitions; append-only triggers. |
+| **Raw Table Storage** | 38.4 GB | 384 GB – 1.9 TB | NVMe SSD storage with zstd table compression; cold partition archival. |
 | **Index Footprint** | 23.8 GB | 238 GB – 1.1 TB | Partial indexes, sparse bloom filters, BRIN indexes on audit dates. |
 
 ---
@@ -64,8 +71,6 @@ Measurements captured under steady-state warm-cache conditions (shared buffer hi
 ---
 
 ## 4. High Availability & Disaster Recovery Architecture
-
-Talentra enforces enterprise business continuity across three core metrics:
 
 ```
 [Primary PostgreSQL Cluster]
@@ -101,15 +106,19 @@ Talentra enforces enterprise business continuity across three core metrics:
 
 ---
 
-## 6. Regulatory Compliance Register
+## 6. Statutory Regulatory Compliance Register
 
-| Regulation | Jurisdiction | Core Statutory Mandates | Database Implementation Mechanism |
-| :--- | :--- | :--- | :--- |
-| **DPDP Act 2023** | India (National) | Granular consent capture, purpose limitation, right to withdraw consent, right to correction/erasure. | Dedicated consent tracking tables; automated cascade anonymization jobs; cryptographic key shredding. |
-| **GDPR (EU 2016/679)** | European Union | Article 17 (Right to Erasure / RTBF), Article 25 (Privacy by Design), Article 32 (Security). | Soft-delete cascades via `deleted_at`; employer exclusion anti-join views (`candidate_block_list`). |
-| **ISO/IEC 27001** | Global Enterprise | Access control, traceability, audit logging, and integrity verification. | Immutable `system_audit_event` capturing actor user ID, role code, IP address, and pre/post JSONB state. |
-| **SOC 2 Type II** | Global Enterprise | Processing integrity, confidentiality, and operational authorization. | 11-module RBAC matrix; session device locking stored procedure; double-entry immutable ledgers. |
-| **PCI-DSS Level 1** | Payment Card Industry | Zero storage of credit card PAN, CVV, or track data. | Explicit boundary: Card data handled by external PSPs (Stripe/Razorpay); Talentra persists tokenized references only. |
+| Regulation & Section | Statutory Mandate | Database Implementation Mechanism |
+| :--- | :--- | :--- |
+| **DPDP Act 2023 (Section 6)** | **Consent Notice & Purpose Limitation**: Processing requires affirmative, unambiguous consent for specified purposes. | Dedicated `governance.dpdp_consent_record` with purpose ENUMs (`JOB_MATCHING`, `RECRUITER_CONTACT`); rejects unconsented data usage. |
+| **DPDP Act 2023 (Section 8)** | **Obligations of Data Fiduciary & Erasure**: Mandatory erasure of personal data once purpose is served or consent withdrawn. | Database trigger `trg_dpdp_consent_withdrawal` initiates automated cascade anonymization and cryptographic key shredding within 2.0 seconds. |
+| **DPDP Act 2023 (Section 9)** | **Processing Data of Children**: Verifiable parental/guardian consent required for candidates under 18 years of age. | Candidate date of birth checked via database constraint; triggers mandatory parental consent token verification flag if age < 18. |
+| **GDPR (Article 17)** | **Right to Erasure (RTBF)**: Data subject right to have personal data erased without undue delay. | Soft-delete cascading via `deleted_at`; cryptographic deletion renders ciphertext permanently unrecoverable. |
+| **GDPR (Article 25)** | **Data Protection by Design & Default**: Privacy controls built into physical schema architecture. | Candidate employer privacy anti-join views (`v_discoverable_candidates`) prevent leaks to current employers by default. |
+| **GDPR (Article 32)** | **Security of Processing**: Encryption of personal data, confidentiality, integrity, and regular testing. | AES-256-GCM column encryption, Argon2id password hashing, and continuous disaster recovery simulation logs. |
+| **ISO/IEC 27001** | **Access Control & Integrity Traceability**: Formal audit trails and cryptographic integrity. | Immutable `system_audit_event` with before/after JSONB state snapshots, client IP address, and actor ID. |
+| **SOC 2 Type II** | **Processing Integrity & Confidentiality**: Non-repudiation of transactions and strict access separation. | 11-module RBAC matrix, single-active-session device concurrency procedure, and double-entry immutable ledgers. |
+| **PCI-DSS Level 1** | **Cardholder Data Protection**: Zero storage of PAN, CVV, or track data. | Explicit boundary: Card data handled by external PSPs (Stripe/Razorpay); Talentra persists tokenized references only. |
 
 ---
 

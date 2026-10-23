@@ -1,178 +1,88 @@
 # Talentra — Requirement Analysis Docket
-**Project**: Talentra Job Search & Demand Management Platform  
-**Organization**: Northbridge Workforce Systems  
-**Document**: Deliverable A3 — Project Requirement Baseline  
-**Document Version**: 1.0 (Approved Baseline)  
-**Target Database**: PostgreSQL 15+  
+**Document Reference**: Deliverable A3 — System Scope, Boundary & Requirements Baseline  
+**Platform**: Talentra Enterprise Workforce Platform  
+**Architecture Domain**: Core Data Platform & Integration Boundaries  
+**Status**: Approved & Frozen for Implementation  
 
 ---
 
-## 1. Executive Summary & Problem Context
+## 1. Executive Purpose & Context
 
-Northbridge Workforce Systems currently maintains multiple disconnected legacy applications for candidate resumes, job requisitions, and recruitment histories. This legacy sprawl creates three major operational problems:
-1. **Low Candidate Retention**: Candidates have no single dashboard to track their applications, verify interview stages, or manage their portfolio and gig availability.
-2. **Pipeline Invisibility**: Corporate employers and recruitment consultants lack end-to-end visibility into hiring funnels, interview stages, and recruiter performance.
-3. **Multi-Category Friction**: Modern staffing encompasses permanent hiring, contract staffing, campus drives, and short-term gig work. Forcing all of these into rigid full-time job models results in data corruption and poor reporting.
+Talentra is an enterprise-scale talent acquisition and workforce mobilization platform designed for Northbridge Workforce Systems. It unifies professional permanent hiring, contingent gig labor procurement, and campus early-career programs into a multi-tenant, high-throughput PostgreSQL architecture.
 
-Talentra is designed as a unified PostgreSQL operational and analytical database supporting transactional hiring workflows and analytics at an enterprise scale of **10 million candidate profiles, 1 million job openings, and 100 million applications**.
+This docket defines the formal requirements baseline, external integration contracts, open architectural questions, and data governance policies. Every requirement is uniquely indexed, assigned an engineering priority, linked to authorized actors, and accompanied by strict ambiguity resolutions that replace subjective adjectives with concrete mathematical and physical database thresholds.
 
 ---
 
-## 2. Sizing Targets & Sizing Methodology
+## 2. In-Scope vs. Explicit Out-of-Scope Boundaries
 
-The platform database is designed to operate under two calibrated benchmark targets:
-
-```
-[ Laptop Benchmark Scale ]                   [ Full Production Horizon ]
-1,000,000 Candidate Profiles        ───>     10,000,000 Candidate Profiles
-  100,000 Job Requirements                    1,000,000 Job Requirements
-5,000,000 Job Applications                  100,000,000 Job Applications
-```
-
-### Extrapolation & Performance Bottleneck Analysis
-* **Working Set & Buffer Cache**: On a standard development machine (16 GB RAM, 8 CPU cores), the 5-million-row application dataset fits comfortably within PostgreSQL's `shared_buffers` and OS page cache.
-* **Extrapolation to 100 Million Rows**: At full scale, the composite index on `(job_requirement_id, candidate_id, status)` will exceed available RAM. To prevent severe I/O degradation and disk swapping, the design mandates **range partitioning by month** on `job_application` and `system_audit_event`, ensuring active working sets remain in memory.
+| Operational Domain | In-Scope (Platform Owned) | Out-of-Scope (External Boundary) |
+| :--- | :--- | :--- |
+| **Identity & Authentication** | User credentials hashed with Argon2id, session token tracking, multi-tenant RBAC assignments, device concurrency locks. | Live biometric capture, hardware key provisioning (delegated to enterprise SSO / Okta). |
+| **Candidate Sourcing** | Anonymized search indexes, parsed resume skill vectors, candidate profile visibility toggles, employer block lists. | External job scraping from third-party boards; resume file OCR (processed via external text extraction microservice). |
+| **Gig Marketplace** | Worker trade categories, hourly rates, proposal submissions, GiST non-overlapping contract scheduling, milestone statuses. | Physical on-site job supervision, vehicle or tool inspection, off-platform labor disputes. |
+| **Billing & Finance** | Double-entry append-only wallet ledger, running balance reconciliation, subscription seat caps, download credit tracking. | Credit card PAN/CVV storage, direct banking interchange (delegated to PCI-DSS Level 1 payment gateways). |
+| **Compliance & Audit** | DPDP Act 2023 consent capture, GDPR erasure cascade, immutable pre/post JSONB mutation logging, data classification tiers. | Legal tribunal filings, government tax filing generation. |
 
 ---
 
-## 3. Supported Workforce Categories
+## 3. Assumptions & Ranked Architectural Questions
 
-Talentra natively models eight distinct workforce categories:
-1. **Gig & Project-Based Work**: Primary revenue driver. Short-duration, milestone-priced or hourly rate-based. Features dedicated availability calendars, external fulfilment handoff, and bidirectional ratings.
-2. **General Staffing**: High-volume blue and grey-collar contract roles.
-3. **Professional Staffing**: White-collar IT and non-IT contract roles.
-4. **Permanent Full-Time Roles**: Direct-hire corporate talent lifecycle.
-5. **Apprentice Hiring**: Structured corporate and government apprentice training programs.
-6. **Campus & Fresher Hiring**: Bulk hiring drives, college cohorts, and Placement Officer (TPO) interfaces.
-7. **Consultant Marketplace**: Freelance recruitment agencies sourcing for approved employer requisitions.
-8. **Managed Remote Workforce**: Geographically distributed managed technical teams.
+### 3.1 Foundational Engineering Assumptions
+1. **Organizational Identity**: Every corporate tenant operates under a legally registered national identifier (e.g., GSTIN, MCA, EIN, SEC) stored with cryptographic blind indexing.
+2. **Global Temporal Normalization**: All business events, contract schedules, and audit entries are recorded in Coordinated Universal Time (`TIMESTAMP WITH TIME ZONE` in UTC).
+3. **Financial Immutability**: Financial transactions and ledger postings are strictly append-only. Ledger errors cannot be altered in place; they require compensating debit/credit entries.
 
----
+### 3.2 Ranked Open Questions (by Architectural Impact)
 
-## 4. External Integration Boundaries
-
-Talentra references data from 9 external systems without owning their internal mechanics. Clear contracts govern each boundary:
-
-| External Service | Data Ownership | Stored Locally vs Referenced | Outage Strategy | Duplicate Prevention (Idempotency) |
-| :--- | :--- | :--- | :--- | :--- |
-| **Payment Gateway** (Stripe/Razorpay) | External is source of truth | Stores transaction ID, status, order amount. **Never stores credit card PAN, CVV, or bank auth**. | Asynchronous retry; order marked `PENDING`; webhook reconciles. | Unique `idempotency_key` per checkout attempt. |
-| **Identity Verification** (National ID/KYC) | External KYC vendor | Stores verification status (`VERIFIED`, `REJECTED`) and verification token. **No raw national identity numbers**. | Async queue; candidate flagged `ID_PENDING` with restricted actions. | Vendor transaction token stored in unique constraint. |
-| **Company Reg & Tax** (MCA/GSTN) | External registry | Stores corporate registration number, tax entity type, verification timestamp. | Fallback to cached corporate profile if registry times out. | Company tax ID + country code unique constraint. |
-| **Gig Fulfilment** | External fulfilment engine | Stores assignment handoff reference, delivery milestone status, and reconciled earnings. | Periodic reconciliation worker polls external status. | Handoff GUID stored in `gig_contract_handoff`. |
-| **Legacy Systems** | Bidirectional sync (Talentra primary post-launch) | Initial migration source and delta sync. Conflict rule: Talentra timestamp wins over legacy. | Errors sent to dead-letter table; original record untouched. | Legacy source record ID stored as natural key. |
-| **Messaging & Notifications** (Twilio/SendGrid) | External delivery gateway | Stores dispatch status (`SENT`, `BOUNCED`), template key, and timestamp. **No long-term message bodies**. | Exponential backoff retry; dead-letter after 3 attempts. | Batch dispatch ID + recipient ID unique key. |
-| **Social Sharing** (LinkedIn, X) | External platforms | Outbound share events and timestamps only. | Fire-and-forget outbound link generation. | Event UUID logged. |
-| **Mapping & Geocoding** (Google Maps/OSM) | External geo vendor | Normalized coordinates (latitude, longitude) and postal code. | Fallback to country/city centroid if geocoder is unreachable. | Geocache table keyed by normalized postal code. |
-| **Market Salary & Reviews** | External benchmarks | Percentile aggregates (`p10`, `p50`, `p90`), source attribution, and refresh date. | Reads cached monthly snapshot if feed fails. | Role code + region code + year-month unique key. |
+| Rank | Architectural Question | Impact Level | Architectural Resolution & Physical Mechanism |
+| :---: | :--- | :---: | :--- |
+| **Q1** | How to prevent circular ownership loops in conglomerate enterprise parent-subsidiary hierarchies? | **Critical** | Recursive Common Table Expression (CTE) cycle-detection trigger on `organisation.organisation_relationship` guarded by PostgreSQL transactional advisory locks (`pg_advisory_xact_lock`). |
+| **Q2** | How to guarantee gig workers cannot be double-booked across overlapping contracts during high concurrency? | **Critical** | PostgreSQL `GiST` temporal exclusion constraint (`EXCLUDE USING gist (worker_id WITH =, contract_validity_period WITH &&)`) rejecting overlapping booking windows at the database kernel level. |
+| **Q3** | How to protect candidate privacy from current employers without degrading search query speed? | **High** | Materialized anti-join views combining `administration.candidate_block_list` with indexed recruiter organization IDs, executing in sub-millisecond latency. |
+| **Q4** | How to maintain accurate corporate wallet balances during concurrent resume unlocks without race conditions? | **High** | Database-level row-level locking (`SELECT ... FOR UPDATE`) coupled with an append-only trigger that automatically re-sums running balances from immutable ledger entries. |
+| **Q5** | How to ensure statutory compliance with DPDP Act 2023 right to erasure while preserving forensic audit trails? | **Medium** | Cryptographic key shredding for tenant DEKs combined with candidate profile anonymization, leaving anonymized audit event IDs intact without personally identifiable data. |
 
 ---
 
-## 5. Functional Requirements Baseline
+## 4. Master Requirements Docket (`REQ-01` to `REQ-25`)
 
-### REQ-01: Candidate Identity & Contact Normalization
-* **Module**: `profile`, `administration` | **Priority**: Must Have
-* **Description**: Normalized user accounts with canonical lowercase emails (RFC 5322) and international phone numbers in E.164 format.
-* **Database Constraint**: `CHECK (email ~* '^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$')`, `UNIQUE (email)`.
+Every requirement below resolves common ambiguities by binding implementation to measurable metrics:
 
-### REQ-02: Comprehensive Candidate Profiles
-* **Module**: `profile`, `master_data` | **Priority**: Must Have
-* **Description**: Normalized records for education chronologies, work history, skill taxonomy with verified proficiencies, languages, projects, and multiple versioned resume attachments.
-* **Database Constraint**: Child tables use `ON DELETE CASCADE` linked to candidate profile ID; soft-deletes at candidate root.
-
-### REQ-03: Job Requisition Lifecycle Management
-* **Module**: `recruitment` | **Priority**: Must Have
-* **Description**: Requisition workflow tracking (`DRAFT`, `PUBLISHED`, `ON_HOLD`, `FILLED`, `CANCELLED`). Publication state enforces that start date precedes closing date and salary ranges are positive.
-* **Database Constraint**: `CHECK (min_salary IS NULL OR max_salary IS NULL OR min_salary <= max_salary)`, `CHECK (closed_at IS NULL OR closed_at >= published_at)`.
-
-### REQ-04: Structured Application Pipeline
-* **Module**: `recruitment` | **Priority**: Must Have
-* **Description**: State machine tracking applicant progression (`APPLIED` $\rightarrow$ `SHORTLISTED` $\rightarrow$ `ASSESSMENT` $\rightarrow$ `INTERVIEW` $\rightarrow$ `OFFERED` $\rightarrow$ `JOINED` / `REJECTED`). Every transition is recorded in an immutable history table.
-* **Database Constraint**: Unique active application constraint: `UNIQUE (job_requirement_id, candidate_id) WHERE status NOT IN ('REJECTED', 'WITHDRAWN')`.
-
-### REQ-05: Pre-Qualification Questionnaires
-* **Module**: `recruitment` | **Priority**: Must Have
-* **Description**: Employers can attach versioned screening questionnaires to job postings with typed questions (`SINGLE_SELECT`, `MULTI_SELECT`, `BOOLEAN`, `NUMERIC`, `TEXT`), knockout thresholds, and automatic scoring.
-* **Database Constraint**: Candidate questionnaire responses link by foreign key to immutable questionnaire version IDs.
-
-### REQ-06: Multi-Tenant Organisation & Recruiter Isolation
-* **Module**: `organisation` | **Priority**: Must Have
-* **Description**: Enterprise hierarchy supporting corporate parents, subsidiaries, and branches. Recruiters are mapped to a specific organisation and cannot view or act on other companies' jobs.
-* **Database Constraint**: Enforced via PostgreSQL Row-Level Security (RLS): `organisation_id = NULLIF(current_setting('app.current_org_id', true), '')::UUID`.
-
-### REQ-07: Identity Governance, RBAC & Candidate Privacy Blocks
-* **Module**: `administration` | **Priority**: Must Have
-* **Description**: Role-based access control across all 9 platform actors. Candidate blocking table allows candidates to block specific employers, recruiters, or headhunters, completely hiding their profile from search pools.
-* **Database Constraint**: Candidate search view uses an anti-join against `candidate_block_list`.
-
-### REQ-08: Dedicated Gig Marketplace Subsystem
-* **Module**: `gig` | **Priority**: Must Have
-* **Description**: Project-based gig requests with fixed or hourly pricing, worker availability calendars, gig proposals, contracts, handoff tokens, and mutual ratings.
-* **Database Constraint**: PostgreSQL GiST exclusion constraint prevents overlapping active contract dates for the same gig worker:
-  `EXCLUDE USING gist (gig_worker_id WITH =, daterange(start_date, end_date, '[]') WITH &&) WHERE (contract_status = 'ACTIVE')`.
-
-### REQ-09: Consultant Marketplace & Sourcing Lineage
-* **Module**: `sourcing`, `recruitment` | **Priority**: Must Have
-* **Description**: Independent recruiters can only view jobs flagged `open_to_consultants = TRUE`. Submitting candidates requires explicit employer acceptance of a sourcing request.
-* **Database Constraint**: Foreign key trigger verifies `sourcing_request.status = 'ACCEPTED'` prior to candidate submission.
-
-### REQ-10: Licences, Seats & Device Quota Management
-* **Module**: `licence`, `administration` | **Priority**: Must Have
-* **Description**: Subscriptions define maximum seats and maximum devices per user. Concurrent active sessions exceeding device limits are rejected at login.
-* **Database Constraint**: Atomic row-level lock on active sessions (`FOR UPDATE`) inside login stored procedure.
-
-### REQ-11: Subscriptions, Wallets & Financial Ledgers
-* **Module**: `billing` | **Priority**: Must Have
-* **Description**: Prepaid wallet credits for resume downloads and outreach. Wallet deductions, payments, invoices, and refunds are stored in an append-only ledger. Adjustments reference original transactions.
-* **Database Constraint**: Database trigger blocks `UPDATE` and `DELETE` on `billing.wallet_ledger`.
-
-### REQ-12: Omnichannel Engagement, Community & Support
-* **Module**: `engagement` | **Priority**: Should Have
-* **Description**: User notification preferences, quiet hours delivery rules, community discussion topics, reactions, support tickets, and referral rewards tracking.
-* **Database Constraint**: Check constraints on notification channels (`EMAIL`, `SMS`, `PUSH`, `WHATSAPP`).
-
-### REQ-13: Analytical Layer & Reporting Marts
-* **Module**: `analytics` | **Priority**: Must Have
-* **Description**: Star schema with SCD Type 2 dimensions, partitioned transactional facts (`fact_applications`, `fact_wallet_transactions`), and aggregated KPI marts (time-to-hire, funnel conversion).
-* **Database Constraint**: Partitioning by date range (`PARTITION BY RANGE (created_at)`).
-
-### REQ-14: Security, PII Protection & Data Lifecycle
-* **Module**: `administration`, `profile` | **Priority**: Must Have
-* **Description**: Classification of every column (Public, Internal, Personal, Sensitive). Sensitive credentials hashed with Argon2id. Audit log tables are append-only.
-* **Database Constraint**: Revocation of `UPDATE` and `DELETE` privileges on audit tables for application database roles.
+| REQ ID | Requirement Statement | Architectural Source | Priority | Target Actor(s) | Ambiguity Resolution & Numeric Threshold |
+| :--- | :--- | :---: | :---: | :--- | :--- |
+| **REQ-01** | Canonical Identity Normalization | Core Invariant | Must-Have | Candidate, User | Email must be stored in lowercase canonical form (`CHECK (email = lower(email))`); max length 254 chars; rejects whitespace. |
+| **REQ-02** | E.164 International Phone Standard | Core Invariant | Must-Have | Candidate, Recruiter | Phone numbers must follow E.164 standard (`^\+[1-9]\d{1,14}$`). Rejects local un-prefixed numbers. |
+| **REQ-03** | Primary Key Standard | Core Invariant | Must-Have | System | Primary keys use surrogate UUIDv4 (`gen_random_uuid()`) to eliminate guessability and enable distributed generation. |
+| **REQ-04** | Fixed-Precision Financials | Core Invariant | Must-Have | Recruiter, Admin | Currency values use `NUMERIC(12,2)` with ISO 4217 currency code foreign keys. Floating-point types strictly prohibited. |
+| **REQ-05** | Standardized Lookup Catalog | Core Invariant | Must-Have | System | Lookup tables mandate `id`, `code` (`^[a-z][a-z0-9_]*$`), `name`, `is_active`, and integer `sort_order`. |
+| **REQ-06** | Multilingual Translation Fallback | Core Invariant | Must-Have | Candidate, Recruiter | UI localized strings resolve in a single indexed query with automatic fallback to English (`en`) if localized key is missing. |
+| **REQ-07** | Screening Questionnaire Trees | Domain Sourcing | Must-Have | Recruiter, Candidate | Requisitions attach versioned questionnaires supporting Text, Single Choice, Multiple Choice, and Boolean with scoring rules. |
+| **REQ-08** | Dynamic Application Templates | Domain Sourcing | Should-Have | Recruiter | Custom application workflows link to questionnaire definitions through strict foreign key referential integrity. |
+| **REQ-09** | Forensic Audit Trail Immutability | Core Security | Must-Have | Auditor, System | Audit tables enforce append-only storage; database triggers abort all `UPDATE` and `DELETE` queries unconditionally. |
+| **REQ-10** | DPDP 2023 Purpose-Bound Consent | Statutory Mandate | Must-Have | Candidate, Auditor | Records affirmative consent grants, purpose codes, IP addresses, user agents, and explicit revocation timestamps. |
+| **REQ-11** | Column-Level Data Sensitivity | Statutory Mandate | Must-Have | Auditor, Security | All columns cataloged into 4 tiers (`PUBLIC`, `INTERNAL`, `CONFIDENTIAL`, `RESTRICTED`) with automated retention policies. |
+| **REQ-12** | Argon2id Credential Encryption | Core Security | Must-Have | System | Passwords hashed using Argon2id with minimum 16-byte cryptographically secure salt. Plaintext prohibited. |
+| **REQ-13** | Multi-Tenant Row-Level Security | Core Security | Must-Have | Recruiter, Admin | Tenant tables enforce PostgreSQL RLS filtered by session variable `app.current_org_id`. |
+| **REQ-14** | Candidate Privacy Shield | Core Security | Must-Have | Candidate, Recruiter | Candidate block list anti-joins prevent current employers from discovering active candidate profiles. |
+| **REQ-15** | GiST Non-Overlapping Gig Scheduling | Domain Gig | Must-Have | Gig Worker, Client | Enforces `EXCLUDE USING gist` on worker contract intervals, guaranteeing zero concurrent double-booking. |
+| **REQ-16** | Single-Active-Session Concurrency | Core Security | Must-Have | Security, Admin | Stored procedure terminates prior device sessions upon new login, preventing commercial seat sharing. |
+| **REQ-17** | Double-Entry Wallet Ledger | Domain Billing | Must-Have | Client, Gig Worker | All financial movements record paired debit/credit ledger entries; running balances recalculated via trigger ($0.00 variance). |
+| **REQ-18** | Resume Unlock Quota & Metering | Domain Sourcing | Must-Have | Recruiter | Accessing candidate PII decrements monthly subscription download credits or debits wallet credits atomically. |
+| **REQ-19** | Tiered Subscription Seat Quotas | Domain Licensing | Must-Have | Account Admin | Enforces hard cap on active recruiter seat assignments matching purchased tier allowance (`seat_count <= max_seats`). |
+| **REQ-20** | National Identifier Blind Indexing | Core Security | Must-Have | Security, System | National tax IDs encrypted via AES-256-GCM; exact lookups executed via HMAC-SHA256 blind indexes without plaintext exposure. |
+| **REQ-21** | Webhook Ingestion Idempotency | Integration | Must-Have | System | Payment and background check webhooks enforce unique idempotency keys, dropping duplicate event deliveries. |
+| **REQ-22** | Campus Cohort Management | Domain Sourcing | Should-Have | Recruiter, Campus Fresher | Supports structured grouping of fresher talent by academic institution, degree specialization, and graduation year. |
+| **REQ-23** | Candidate Referral Tracking | Engagement | Should-Have | Candidate, Recruiter | Assigns unique alphanumeric referral codes to track application origin and trigger automated bonus attributions. |
+| **REQ-24** | Sub-Millisecond Search Latency | Performance SLA | Must-Have | Recruiter | Candidate profile search across 1,000,000 records achieves warm-cache p95 latency under 10.0 ms via GIN trigram indexes. |
+| **REQ-25** | Disaster Recovery RTO/RPO | Infrastructure | Must-Have | System Admin | Enforces Recovery Point Objective (RPO) < 1.0 minute and Recovery Time Objective (RTO) < 15.0 minutes via WAL streaming. |
 
 ---
 
-## 6. Architecture Decision Records (ADRs)
+## 5. Architectural Decision Records (ADRs)
 
-### ADR-01: Gig Marketplace Subsystem vs. Unified Requisitions
-* **Decision**: Gig work is modeled in a separate `gig` schema rather than reusing `recruitment.job_requirement`.
-* **Rationale**: Full-time recruitment follows multi-stage interview workflows and corporate requisitions. Gig work relies on immediate availability calendars, proposal bids, milestone deliveries, and external fulfilment engines. Merging them creates sparse, NULL-polluted tables and breaks constraint enforcement.
-* **Trade-off**: Requires separate analytical facts, but preserves clean relational integrity and prevents schema coupling.
-
-### ADR-02: Database-Tier Session and Device Concurrency
-* **Decision**: Active device counts are enforced inside an atomic PostgreSQL stored procedure rather than application-layer cache.
-* **Rationale**: Prevents race conditions during simultaneous logins from multiple devices, stopping commercial license sharing.
-
----
-
-## 7. Quality Verification: 5-Branch Test Taxonomy
-
-Test verification is structured across five core architectural branches to provide complete safety coverage:
-
-```
-Test Verification Graph
- ├── 1. Structure & Project Best Practices (Naming, keys, physical schema)
- ├── 2. Data Integrity & Data Quality (Formats, required fields, cascade rules)
- ├── 3. Business Rules & Behaviour (Pipelines, workflows, non-overlapping windows)
- ├── 4. Security, Privacy & Access (RLS isolation, candidate blocks, append-only triggers)
- └── 5. Non-Functional Requirements (Scale, buffer hit ratios, recovery RTO/RPO)
-```
-
-| Branch | Test ID | Description | Target Object | Verification Method | Expected Result |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **1. Structure & Best Practices** | `TST-STR-01` | Validate singular table naming, surrogate PK `id`, and foreign key `<table_name>_id` conventions. | PostgreSQL `information_schema` | Schema catalog query inspection | 100% compliance; zero reserved keyword identifier collisions. |
-| **2. Data Integrity & Quality** | `TST-INT-01` | Attempt inserting invalid email address or salary where `min_salary > max_salary`. | `users.account`, `recruitment.job_requirement` | SQL insert with invalid data | Database aborts with `CHECK constraint violation`. |
-| **3. Business Rules & Behavior** | `TST-BIZ-01` | Candidate submits two concurrent active applications to the same job opening. | `recruitment.job_application` | Duplicate insert attempt | Aborts with `unique_violation` on active partial index. |
-| **4. Security, Privacy & Access** | `TST-SEC-01` | Recruiter from Company A attempts `SELECT` on Company B's requisitions. | `recruitment.job_requirement` | Query with `app.current_org_id = Company_A` | Returns 0 rows. Row-Level Security silently filters tenant data. |
-| **4. Security, Privacy & Access** | `TST-SEC-02` | Admin attempts `UPDATE` or `DELETE` on system audit log. | `audit.system_audit_event` | Direct DML statement | Aborts with trigger error: `Table is append-only`. |
-| **5. Non-Functional & Scale** | `TST-NFR-01` | Benchmark lookup latency on 1M candidate profiles and verify RPO recovery from WAL archives. | `profile.candidate_profile` | Execution plan (`EXPLAIN ANALYZE`) & WAL replay log | Index scan lookup p95 < 5ms; point-in-time recovery completed in < 12 minutes. |
+- **ADR-01: Engine-Level Multi-Tenancy via PostgreSQL Row-Level Security (RLS)**: Enforces tenant data isolation at the storage engine level rather than relying on application `WHERE` clauses, preventing data leaks.
+- **ADR-02: GiST Temporal Exclusion for Gig Workforce Booking**: Prevents scheduling collisions at the database layer using geometric spatial/range operators, eliminating application race conditions.
+- **ADR-03: Double-Entry Immutable Financial Ledger**: All wallet balance modifications require an explicit entry in `billing.wallet_ledger`, maintaining mathematical proof of financial integrity.
+- **ADR-04: Cryptographic Blind Indexing for Sensitive Identifiers**: Allows deterministic equality queries on encrypted PII columns (phone, tax ID) using HMAC-SHA256 without decrypting database tables.
+- **ADR-05: Append-Only Immutable Compliance Auditing**: Forensically valid tracking of all critical system mutations via JSONB before/after snapshots protected by exception triggers.
