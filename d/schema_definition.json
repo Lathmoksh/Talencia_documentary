@@ -2,17 +2,18 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://talentra.internal/schemas/nfr-discovery.json",
   "title": "Talentra Non-Functional Requirements (NFR) Schema",
-  "description": "Validation schema for Talentra quality targets, scale extrapolations, performance budgets, and regulatory compliance.",
+  "description": "Validation schema for Talentra quality targets, scale extrapolations, query SLA profiles, and regulatory compliance.",
   "type": "object",
   "required": [
     "metadata",
     "benchmark_environment",
     "volumetric_derivation",
-    "latency_budgets",
+    "query_sla_profiles",
     "resilience_targets",
     "security_standards",
     "statutory_compliance",
-    "nfr_register"
+    "nfr_register",
+    "gate_scorecard"
   ],
   "properties": {
     "metadata": {
@@ -27,18 +28,52 @@
         "status": { "type": "string", "enum": ["Draft", "In Review", "Approved", "Superseded"] }
       }
     },
-    "benchmark_environment": { "type": "object" },
+    "benchmark_environment": {
+      "type": "object",
+      "required": ["storage_engine", "hardware_tier", "nvme_iops_capacity", "nvme_iops_required", "headroom_pct"],
+      "properties": {
+        "storage_engine": { "type": "string" },
+        "hardware_tier": { "type": "string" },
+        "nvme_iops_capacity": { "type": "integer" },
+        "nvme_iops_required": { "type": "integer" },
+        "headroom_pct": { "type": "number" }
+      }
+    },
     "volumetric_derivation": {
       "type": "object",
-      "required": ["record_geometry_formula", "laptop_scale_gb", "production_scale_tb"],
+      "required": ["candidate_record_geometry_kb", "application_record_geometry_kb", "laptop_working_set_gb", "production_scale_tb"],
       "properties": {
-        "record_geometry_formula": { "type": "string" },
-        "laptop_scale_gb": { "type": "number" },
+        "candidate_record_geometry_kb": { "type": "number" },
+        "application_record_geometry_kb": { "type": "number" },
+        "laptop_working_set_gb": { "type": "number" },
         "production_scale_tb": { "type": "number" }
       }
     },
-    "latency_budgets": { "type": "array" },
-    "resilience_targets": { "type": "object" },
+    "query_sla_profiles": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "type": "object",
+        "required": ["query_id", "description", "p50_ms", "p95_sla_ms", "p99_ms", "execution_strategy"],
+        "properties": {
+          "query_id": { "type": "string", "pattern": "^Q[1-7]$" },
+          "description": { "type": "string" },
+          "p50_ms": { "type": "number" },
+          "p95_sla_ms": { "type": "number" },
+          "p99_ms": { "type": "number" },
+          "execution_strategy": { "type": "string" }
+        }
+      }
+    },
+    "resilience_targets": {
+      "type": "object",
+      "required": ["annual_availability_pct", "rpo_minutes", "rto_minutes"],
+      "properties": {
+        "annual_availability_pct": { "type": "number" },
+        "rpo_minutes": { "type": "number" },
+        "rto_minutes": { "type": "number" }
+      }
+    },
     "security_standards": { "type": "object" },
     "statutory_compliance": {
       "type": "array",
@@ -56,17 +91,27 @@
     },
     "nfr_register": {
       "type": "array",
-      "minItems": 10,
+      "minItems": 15,
       "items": {
         "type": "object",
-        "required": ["nfr_id", "category", "metric_name", "numeric_target", "test_harness"],
+        "required": ["nfr_id", "category", "metric_name", "target_value", "test_harness", "architectural_derivation"],
         "properties": {
           "nfr_id": { "type": "string", "pattern": "^NFR-[0-9]{2}$" },
           "category": { "type": "string" },
           "metric_name": { "type": "string" },
-          "numeric_target": { "type": "string" },
-          "test_harness": { "type": "string" }
+          "target_value": { "type": "string" },
+          "test_harness": { "type": "string" },
+          "architectural_derivation": { "type": "string" }
         }
+      }
+    },
+    "gate_scorecard": {
+      "type": "object",
+      "required": ["composite_score", "status", "exit_requirement"],
+      "properties": {
+        "composite_score": { "type": "number" },
+        "status": { "type": "string" },
+        "exit_requirement": { "type": "string" }
       }
     }
   }

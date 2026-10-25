@@ -1,15 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://talentra.internal/schemas/business-workflows.json",
+  "$id": "https://talentra.internal/schemas/business-workflow.json",
   "title": "Talentra Business Workflow Analysis Schema",
-  "description": "Validation schema for Talentra end-to-end operational lifecycles, state machines, decision gateways, and exception handling.",
+  "description": "Validation schema for Talentra end-to-end operational workflows, 6-parameter tuples, 4-category exception catalogs, and Gate G1 exit scorecards.",
   "type": "object",
   "required": [
     "metadata",
+    "architecture_pillars",
     "workflow_inventory",
-    "state_machine_rules",
-    "exception_catalogue",
-    "feature_traceability"
+    "exception_catalog",
+    "feature_traceability",
+    "storage_invariants",
+    "gate_scorecard"
   ],
   "properties": {
     "metadata": {
@@ -24,40 +26,71 @@
         "status": { "type": "string", "enum": ["Draft", "In Review", "Approved", "Superseded"] }
       }
     },
+    "architecture_pillars": {
+      "type": "array",
+      "minItems": 4,
+      "items": { "type": "string" }
+    },
     "workflow_inventory": {
       "type": "array",
-      "minItems": 7,
+      "minItems": 10,
       "items": {
         "type": "object",
-        "required": ["workflow_code", "title", "trigger", "steps", "actors", "decisions", "exceptions", "outputs"],
+        "required": ["workflow_id", "title", "trigger", "steps", "actors", "decisions", "exceptions", "outputs", "core_invariant"],
         "properties": {
-          "workflow_code": { "type": "string", "pattern": "^WF-[0-9]{2}$" },
+          "workflow_id": { "type": "string", "pattern": "^WF-[0-9]{2}$" },
           "title": { "type": "string" },
           "trigger": { "type": "string" },
-          "steps": { "type": "array" },
-          "actors": { "type": "array" },
-          "decisions": { "type": "string" },
-          "exceptions": { "type": "array" },
-          "outputs": { "type": "string" }
+          "steps": { "type": "array", "items": { "type": "string" } },
+          "actors": { "type": "array", "items": { "type": "string" } },
+          "decisions": { "type": "array", "items": { "type": "string" } },
+          "exceptions": { "type": "array", "items": { "type": "string" } },
+          "outputs": { "type": "string" },
+          "core_invariant": { "type": "string" }
         }
       }
     },
-    "state_machine_rules": { "type": "array" },
-    "exception_catalogue": {
+    "exception_catalog": {
       "type": "array",
-      "minItems": 8,
+      "minItems": 10,
       "items": {
         "type": "object",
-        "required": ["exception_code", "failure_category", "failure_condition", "mitigation_strategy", "final_state"],
+        "required": ["exception_id", "category", "operational_condition", "triggering_context", "mitigation_strategy", "terminal_state"],
         "properties": {
-          "exception_code": { "type": "string", "pattern": "^EXC-[0-9]{2}$" },
-          "failure_category": { "type": "string", "enum": ["CANCEL_PATH", "REFUND_PATH", "RETRY_PATH", "TIMEOUT_PATH"] },
-          "failure_condition": { "type": "string" },
+          "exception_id": { "type": "string", "pattern": "^EXC-[0-9]{2}$" },
+          "category": { "type": "string", "enum": ["Cancel Path", "Refund Path", "Retry Path", "Timeout Path"] },
+          "operational_condition": { "type": "string" },
+          "triggering_context": { "type": "string" },
           "mitigation_strategy": { "type": "string" },
-          "final_state": { "type": "string" }
+          "terminal_state": { "type": "string" }
         }
       }
     },
-    "feature_traceability": { "type": "array" }
+    "feature_traceability": {
+      "type": "array",
+      "minItems": 25,
+      "items": {
+        "type": "object",
+        "required": ["feature_id", "feature_title", "pillar", "priority", "mapped_workflows", "verification_evidence"],
+        "properties": {
+          "feature_id": { "type": "string", "pattern": "^F-[0-9]{2}$" },
+          "feature_title": { "type": "string" },
+          "pillar": { "type": "string" },
+          "priority": { "type": "string", "enum": ["Must-Have", "Should-Have", "Could-Have", "Differentiator"] },
+          "mapped_workflows": { "type": "array", "items": { "type": "string" } },
+          "verification_evidence": { "type": "string" }
+        }
+      }
+    },
+    "storage_invariants": { "type": "object" },
+    "gate_scorecard": {
+      "type": "object",
+      "required": ["composite_score", "status", "exit_requirement"],
+      "properties": {
+        "composite_score": { "type": "number" },
+        "status": { "type": "string" },
+        "exit_requirement": { "type": "string" }
+      }
+    }
   }
 }

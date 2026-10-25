@@ -2,60 +2,93 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://talentra.internal/schemas/feature-discovery.json",
   "title": "Talentra Feature Discovery Schema",
-  "description": "Validation schema for Talentra feature catalog, competitive gap analysis, and MoSCoW prioritization.",
+  "description": "Validation schema for Deliverable C: 25 product features, 8-dimension competitor matrix, 4 pillars, and Gate G1 scorecard.",
   "type": "object",
   "required": [
     "metadata",
-    "competitor_gap_analysis",
-    "feature_catalog",
-    "database_mechanisms"
+    "feature_architecture",
+    "competitor_coverage_matrix",
+    "feature_inventory",
+    "gate_g1_scorecard"
   ],
   "properties": {
     "metadata": {
       "type": "object",
-      "required": ["docket_id", "version", "last_updated", "author", "reviewed_by", "status"],
+      "required": ["docket_id", "playbook_step", "version", "gate_status"],
       "properties": {
-        "docket_id": { "type": "string", "pattern": "^TAL-FEAT-[0-9]{4}$" },
+        "docket_id": { "type": "string" },
+        "playbook_step": { "type": "string" },
         "version": { "type": "string" },
-        "last_updated": { "type": "string", "format": "date" },
-        "author": { "type": "string" },
-        "reviewed_by": { "type": "string" },
-        "status": { "type": "string", "enum": ["Draft", "In Review", "Approved", "Superseded"] }
+        "gate_status": { "type": "string" }
       }
     },
-    "competitor_gap_analysis": {
+    "feature_architecture": {
+      "type": "object",
+      "required": ["pillars", "diagram_available"],
+      "properties": {
+        "pillars": {
+          "type": "array",
+          "minItems": 4,
+          "items": { "type": "string" }
+        },
+        "diagram_available": { "type": "boolean" }
+      }
+    },
+    "competitor_coverage_matrix": {
       "type": "array",
       "minItems": 8,
       "items": {
         "type": "object",
-        "required": ["dimension_name", "legacy_competitor_coverage", "talentra_implementation", "competitor_lack_argument"],
+        "required": ["capability_dimension", "linkedin_impl", "naukri_monster_impl", "talentra_db_arch", "competitive_verdict"],
         "properties": {
-          "dimension_name": { "type": "string" },
-          "legacy_competitor_coverage": { "type": "string" },
-          "talentra_implementation": { "type": "string" },
-          "competitor_lack_argument": { "type": "string" }
+          "capability_dimension": { "type": "string" },
+          "linkedin_impl": { "type": "string" },
+          "naukri_monster_impl": { "type": "string" },
+          "talentra_db_arch": { "type": "string" },
+          "competitive_verdict": { "type": "string" }
         }
       }
     },
-    "feature_catalog": {
+    "feature_inventory": {
       "type": "array",
-      "minItems": 20,
+      "minItems": 25,
       "items": {
         "type": "object",
-        "required": ["feature_id", "title", "pillar", "moscow_priority", "mapped_requirements", "db_implementation_mechanism"],
+        "required": ["id", "title", "pillar", "moscow_tier", "traceable_reqs", "target_actors", "database_mechanism"],
         "properties": {
-          "feature_id": { "type": "string", "pattern": "^F-[0-9]{2}$" },
+          "id": { "type": "string", "pattern": "^F-[0-9]{2}$" },
           "title": { "type": "string" },
-          "pillar": { "type": "string", "enum": ["IDENTITY", "SOURCING", "MONETIZATION", "BILLING", "GIG", "GOVERNANCE"] },
-          "moscow_priority": { "type": "string", "enum": ["Must-Have", "Should-Have", "Differentiator"] },
-          "mapped_requirements": {
-            "type": "array",
-            "items": { "type": "string", "pattern": "^REQ-[0-9]{2}$" }
-          },
-          "db_implementation_mechanism": { "type": "string" }
+          "pillar": { "type": "string" },
+          "moscow_tier": { "type": "string", "enum": ["Must-Have", "Should-Have", "Could-Have", "Differentiator"] },
+          "traceable_reqs": { "type": "string" },
+          "target_actors": { "type": "string" },
+          "database_mechanism": { "type": "string" }
         }
       }
     },
-    "database_mechanisms": { "type": "object" }
+    "gate_g1_scorecard": {
+      "type": "object",
+      "required": ["composite_score", "status", "dimensions"],
+      "properties": {
+        "composite_score": { "type": "number" },
+        "status": { "type": "string" },
+        "dimensions": {
+          "type": "array",
+          "minItems": 6,
+          "items": {
+            "type": "object",
+            "required": ["dimension", "weight", "criteria", "observed", "score", "weighted_score"],
+            "properties": {
+              "dimension": { "type": "string" },
+              "weight": { "type": "string" },
+              "criteria": { "type": "string" },
+              "observed": { "type": "string" },
+              "score": { "type": "string" },
+              "weighted_score": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
   }
 }

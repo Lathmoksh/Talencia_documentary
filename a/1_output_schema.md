@@ -1,6 +1,6 @@
-# Talentra — Requirements Analysis Schema Specification
+# Talentra: Requirements Analysis Schema Specification
 **Document Reference**: Deliverable A1 — Output Schema Definition & Meta-Model  
-**Step / Activity**: Step 01 — Requirement Analysis Docket  
+**Playbook Step**: Step 1 · Phase 1 Discover  
 **System**: Talentra Enterprise Workforce Platform  
 **Owner**: Core Data Architecture & Systems Engineering Board  
 **Gate**: Phase 1 Discover (Gate G1 Deliverable)  
@@ -8,105 +8,176 @@
 
 ---
 
-## Executive Summary: Step 01 — Requirement Analysis Docket
+## Executive Summary: Step 1 — Requirements Analysis Meta-Model
 
 ### 1. Purpose & Business Objective
-The Requirement Analysis Docket establishes the foundational engineering contract for the Talentra Enterprise Workforce Platform. Built for Northbridge Workforce Systems, Talentra unifies three historically fragmented labor models—permanent enterprise talent acquisition, contingent gig/contractor labor mobilization, and university campus early-career programs—into a unified, multi-tenant digital ecosystem.
+The Requirements Analysis Docket Meta-Model establishes the formal structural contract and data schema governing Deliverable A (**Requirements Analysis Docket**) for the Talentra Enterprise Workforce Platform. Built for Northbridge Workforce Systems, Talentra unifies corporate permanent hiring, contingent gig/contract labor mobilization, and university campus early-career recruitment into a single, multi-tenant digital ecosystem.
 
-The objective of Step 01 is to eliminate architectural and business ambiguity before any schema modeling or code execution begins. By isolating pure business requirements from premature physical implementation, establishing rigorous boundary demarcations, and assigning quantifiable numeric thresholds to every requirement, this docket ensures that subsequent architectural phases (Phases 2 through 4) build upon a mathematically verified and legally compliant foundation.
+The core objective of Step 1 is to eliminate business and structural ambiguity before any database entity modeling, schema definition, or code development begins. Adhering to the foundational tenet:
 
-### 2. Key Architectural Deliverables & Scope
-1. **29 Pure Functional & Regulatory Requirements (`REQ-01` to `REQ-29`)**:
-   - Spans 6 critical operational domains: Core Platform Invariants (8), Domain Sourcing (6), Domain Gig (4), Billing & Monetization (3), Security & Privacy (5), and Infrastructure SLAs (3).
-   - Zero implementation pollution: requirements state *what* business invariants must hold, resolving subjective adjectives ("fast", "scalable", "secure") with empirical metrics (e.g., E.164 phone regex, `NUMERIC(12,2)` precision, sub-10ms p95 search latency, ISO 4217 currency codes).
-2. **System Boundary & Demarcation Register**:
-   - Clear contract specifying platform-owned capabilities versus out-of-scope external integrations across Identity (Okta SSO delegation), Billing (PCI-DSS Level 1 gateway isolation), Candidate Verification (third-party background checks), and Job Sourcing.
-3. **Ranked Architectural Questions & Risk Mitigations (Q1 to Q5)**:
-   - Evaluated by risk impact (Critical to Medium) with concrete architectural resolutions: cyclic hierarchy recursion checks, temporal interval exclusion, candidate anti-join privacy masking, double-entry wallet locking, and cryptographic key shredding for statutory DPDP erasure.
-4. **Foundational Architectural Decision Records (ADR-01 to ADR-10)**:
-   - Formalizes architectural choices: engine-level multi-tenancy, immutable append-only audit/ledger logs, blind indexing for PII lookups, and transactional advisory locking.
+> **"Understand before you model — nothing is modelled yet."**
+
+Every requirement statement in this schema isolates pure business capabilities from premature physical implementation, assigns verifiable numeric thresholds, establishes firm integration boundaries, and maps to the source brief with 100% sentence-level traceability.
+
+### 2. Architectural Deliverables & Scope
+1. **Complete 77-Requirement Baseline (`REQ-001` through `REQ-142`)**:
+   - Spanning 10 distinct subsections: Problem and Goals (6), Job Categories (8), Gig Marketplace (9), Core Workflows (11), Actors and Privileges (8), Data Domains Coverage (21), Data Standards Rule Groups (12), Integration Boundaries (10), Scale & Environment (5), and Deliverables (13).
+   - Zero premature physical schema leaks: requirements define business invariants and observable behaviors, resolving subjective adjectives into empirical metrics.
+2. **Explicit Out-of-Scope Demarcations (`OOS-01` through `OOS-07`)**:
+   - Firm architectural boundaries excluding front-end UI construction, live external service operations, physical 10M loading on laptops, legacy migration execution, employer sub-roles, gig task dispatching, and standalone Tier 3 analytical modules.
+3. **Actor Taxonomy (9 Primary Personas + 6 Edge / System Archetypes)**:
+   - Full categorization across SuperAdmin, Admin, Account Admin, Candidate, Employer, Recruiter, Consultant, Placement Officer (TPO), Guest, Gig Worker, Gig Requester, Scheduled Daemons, External Systems, Auditor, and Support Staff.
+4. **Ranked Open Questions with Architectural Stances (`Q1` through `Q10`)**:
+   - Ranked by system design impact (Rank 1 to 10) with assigned owners and concrete architectural stances.
+5. **Requirements Architecture & Taxonomy Tree Diagram**:
+   - Formal visual mindmap and taxonomy tree structuring the entire requirements docket from root to operational leaves.
 
 ---
 
 ## 1. Schema Hierarchy & Structural Metrics
 
-This schema defines the formal structure required for the Requirement Analysis Docket across four nested levels:
+The formal structure of the Requirements Analysis Docket is organized across four nested levels:
 
 ```
-Requirement Docket Schema (Root)
+Requirements Docket Schema (Root)
  ├── L1.0 Executive Summary, Document Metadata & Governance
  ├── L1.1 Business Problem, Enterprise Scope & Capacity Scaling
- ├── L1.2 In-Scope vs. Explicit Out-of-Scope System Boundaries
- ├── L1.3 Ranked Architectural Open Questions & Risk Mitigations (Q1–Q5)
- ├── L1.4 Master Functional Requirements Baseline (REQ-01 to REQ-29)
- ├── L1.5 Architectural Decision Records Register (ADR-01 to ADR-10)
- └── L1.6 Non-Functional Standards & Data Integrity Guardrails
+ ├── L1.2 Strategic Goals & Measurable Success Indicators (G1–G4)
+ ├── L1.3 Scope Demarcations & Explicit Out-of-Scope Register (OOS-01–OOS-07)
+ ├── L1.4 Actor Taxonomy & Authorization Roles (9 Core + 6 Edge Archetypes)
+ ├── L1.5 Master Requirements Register (REQ-001 to REQ-142 across 10 Subsections)
+ ├── L1.6 Vague Words Made Measurable Specification
+ ├── L1.7 Operational Assumptions Register (A1–A6)
+ ├── L1.8 Ranked Architectural Open Questions & Risk Mitigations (Q1–Q10)
+ ├── L1.9 Brief Traceability & Coverage Matrix (Sections 1–7 to REQ IDs)
+ └── L1.10 Visual Taxonomy Tree & Requirements Architecture Diagram
 ```
 
 ### Schema Structural Metrics
 
-| Level | Granularity | Measured Count | Status / Basis | Key Governance Question Answered |
+| Level | Structural Granularity | Measured Count | Status / Basis | Key Governance Question Answered |
 | :--- | :--- | :---: | :--- | :--- |
-| **Level 1 · Macro** | Major Sections | **7 sections** | 100% frozen | Are all architectural domains, boundaries, and questions accounted for? |
-| **Level 2 · Micro** | Parameters & Models | **32 parameters** | 4.6 avg/section | Can the engineering team defend every requirement, actor, and boundary? |
-| **Level 3 · Nano** | Sub-parameters & Enums | **104 classifications** | Categorized & typed | Are all priority codes, sources, and ambiguity resolutions strictly typed? |
-| **Level 4 · Pico** | Atomic Constraints | **100% leaf coverage** | Formally defined | Does every requirement link to a verifiable test assertion and data domain? |
+| **Level 1 · Macro** | Major Sections | **10 sections** | 100% frozen | Are all operational domains, boundaries, and governance dimensions accounted for? |
+| **Level 2 · Micro** | Parameters & Models | **48 parameters** | 4.8 avg/section | Can the engineering team defend every functional capability, actor, and boundary? |
+| **Level 3 · Nano** | Sub-parameters & Enums | **142 classifications**| Strictly typed | Are all priorities (Must/Should/Could), sources (S1..S7), and classifications typed? |
+| **Level 4 · Pico** | Atomic Constraints | **100% leaf coverage** | Formally defined | Does every requirement link to a verifiable test assertion, metric, and owner? |
 
 ---
 
 ## 2. Scope Demarcation & Decision Log
 
-| Candidate Feature / Capability | Decision | Architectural Rationale & Justification | Stage Owner |
+| Capability / Architectural Dilemma | Stance | Architectural Rationale & Justification | Governance Owner |
 | :--- | :---: | :--- | :---: |
-| **Raw Credit Card Numbers (PAN / CVV)** | **DROPPED** | PCI-DSS scope elimination. Talentra only persists gateway reference IDs, order statuses, and fixed-precision transaction amounts. | Core Architecture |
-| **Cleartext National Identity Numbers** | **DROPPED** | Statutory data privacy mandate. Replaced with AES-256-GCM encryption and HMAC-SHA256 blind indexing for deterministic equality lookups. | Security Eng |
-| **Unified Single Table for Gigs & Full-Time**| **DROPPED** | Gigs mandate calendar scheduling, bid proposals, and milestone escrow. Forcing them into full-time requisition entities creates NULL-polluted models. | Domain Lead |
-| **Client-Side Concurrency Locking** | **DROPPED** | Unreliable across distributed clients; susceptible to network race conditions. Enforced via database-level temporal exclusions and transaction locks. | Database Architect |
-| **8 Discrete Workforce Categories** | **KEPT** | Essential for Northbridge's commercial market model (Gig, Staffing, Professional, Permanent, Campus, Apprentice, Consultant, Remote). | Product Board |
-| **9 External Integration Boundary Contracts** | **KEPT** | Eliminates integration ambiguity regarding external provider downtime, webhook idempotency, and transactional boundaries. | Integration Eng |
-| **Ranked Open Questions with Concrete Resolutions**| **KEPT** | Replaces speculative assumptions with mathematical cycle detection, GiST temporal non-overlap, and anti-join shielding. | Systems Architect |
+| **Raw Credit Card Numbers (PAN / CVV)** | **DROPPED** | PCI-DSS scope elimination. Talentra only stores external gateway reference IDs, payment order statuses, and fixed-precision transaction amounts (`NUMERIC(12,2)`). | Security Architect |
+| **Cleartext National Identity Numbers** | **DROPPED** | Statutory data privacy compliance (DPDP Act 2023). Identity numbers encrypted via AES-256-GCM; exact equality lookups use HMAC-SHA256 blind indexing. | Data Privacy Lead |
+| **Unified Single Table for Gigs & Lateral** | **DROPPED** | Contingent gigs mandate calendar availability, milestone escrow, and fixed/rate pricing. Merging them into permanent job requisition tables creates severe NULL pollution. | Core Architect |
+| **Client-Side Concurrency Controls** | **DROPPED** | Susceptible to network latency, distributed race conditions, and bypasses. Enforced via database-level `GiST` temporal exclusion constraints and row-level locks. | Database Engineer |
+| **8 Discrete Workforce Categories** | **KEPT** | Essential for Northbridge's commercial business model: Gig, General Staffing, Professional Staffing, Permanent, Apprentice, Campus, Consultant, and Remote. | Product Board |
+| **9 External Integration Boundaries** | **KEPT** | Eliminates integration ambiguity regarding external provider downtime, webhook idempotency, and transactional boundaries. | Integration Lead |
+| **10 Ranked Open Questions with Stances** | **KEPT** | Replaces speculative developer assumptions with formal architectural stances, clear severity rankings, and assigned owners. | Systems Architect |
 
 ---
 
 ## 3. Parameter Dictionary & Field Rules
 
-### Section L1.0: Executive Summary & Governance
+### Section L1.0: Document Metadata & Governance
 * `docket_id`: Unique document identifier (Text, regex `^TAL-REQ-[0-9]{4}$`). Mandatory.
-* `version`: Semantic version string (`MAJOR.MINOR.PATCH`).
-* `status`: Approval state (`Draft`, `In Review`, `Approved`, `Frozen`).
-* `authors`: Principal Data Architect, Lead Systems Engineer.
-* `governance_board`: Enterprise Architecture Review Board (EARB).
+* `playbook_step`: Playbook execution step (`Step 1 · Phase 1 Discover`).
+* `version`: Semantic version string (`MAJOR.MINOR`).
+* `source_brief`: Reference to authoritative brief (`Northbridge Workforce Systems Hackathon Docket`).
+* `gate_status`: Approval state (`Gate G1 Certified`, `100% Traceability`).
 
-### Section L1.1: Business Problem & Capacity Scaling
-* `problem_statement`: Narrative explaining legacy platform fragmentation, candidate leakage, and siloed labor billing.
-* `supported_workforce_types`: Array of 8 discrete labor categories (`GIG_PROJECT`, `GENERAL_STAFFING`, `PROFESSIONAL_STAFFING`, `PERMANENT_FT`, `APPRENTICE`, `CAMPUS_FRESHER`, `CONSULTANT_MARKETPLACE`, `MANAGED_REMOTE`).
+### Section L1.1: Business Problem & Enterprise Scope
+* `problem_narrative`: Text detailing legacy fragmentation, candidate drop-off, and pipeline invisibility.
 * `target_scale_parameters`:
-  * `candidate_pool_baseline`: 1,000,000 active profiles (laptop baseline) / 50,000,000 (production horizon).
-  * `requisition_volume`: 100,000 active requisitions (baseline) / 5,000,000 (production horizon).
-  * `application_throughput`: 5,000,000 applications (baseline) / 100,000,000 (production horizon).
+  * `candidate_pool`: 1,000,000 active profiles (laptop seed) / 10,000,000 (full scale).
+  * `requisition_volume`: 100,000 active requisitions (laptop seed) / 1,000,000 (full scale).
+  * `application_throughput`: 5,000,000 applications (laptop seed) / 100,000,000 (full scale).
 
-### Section L1.2: System Boundaries & Demarcations
-* `domain_name`: Operational system domain (`Identity`, `Sourcing`, `Gig Marketplace`, `Billing`, `Compliance`).
-* `in_scope_responsibilities`: Explicitly platform-owned business logic and data states.
-* `out_of_scope_boundary`: Delegated external capabilities with explicit handoff contracts.
+### Section L1.2: Strategic Goals (G1–G4)
+* `goal_id`: Identifier (`G1` to `G4`).
+* `goal_statement`: Concise statement of business goal.
+* `measure_of_success`: Observable, measurable verification criterion.
+* `verification_method`: Formal test method (query plan, concurrency test, ADR log).
 
-### Section L1.3: Ranked Architectural Open Questions
-* `question_id`: Identifier (`Q1` to `Q5`).
-* `question_statement`: Core architectural dilemma or edge condition.
-* `impact_level`: Severity rating (`Critical`, `High`, `Medium`).
-* `architectural_resolution`: Specific architectural mechanism resolving the uncertainty.
+### Section L1.3: Scope Demarcations & Out-of-Scope Register (OOS-01–OOS-07)
+* `oos_id`: Unique identifier (`OOS-01` to `OOS-07`).
+* `item_name`: Out-of-scope feature or system responsibility.
+* `source_ref`: Brief section establishing the exclusion (`Section 1`, `Section 2`, `Section 3`, `Section 4`, `Section 6`, `Section 7`).
+* `boundary_contract`: Explicit contract detailing platform-owned interface vs excluded external capability.
 
-### Section L1.4: Master Functional Requirements Baseline (REQ-01 to REQ-29)
-* `req_id`: Unique identifier (`REQ-01` to `REQ-29`). Mandatory.
-* `domain`: Functional domain category (`Core Invariant`, `Domain Sourcing`, `Domain Gig`, `Billing & Licensing`, `Security & Privacy`, `Infrastructure SLA`).
-* `requirement_statement`: Concise statement of business capability without implementation leaks.
-* `moscow_priority`: Classification (`Must-Have`, `Should-Have`, `Could-Have`).
-* `target_actors`: Array of authorized personas interacting with this capability.
-* `ambiguity_resolution`: Concrete metric, standard, or constraint replacing subjective qualifiers.
+### Section L1.4: Actor Taxonomy (9 Primary + 6 Edge / System)
+* `actor_id`: Identifier (`ACT-01` to `ACT-15` or canonical persona `P-01` to `P-12`).
+* `actor_name`: Formal persona title (e.g. `Candidate`, `Employer`, `Recruiter`, `Gig Worker`, `Placement Officer`).
+* `classification`: Actor type (`Primary Human`, `Edge / System`).
+* `scope_of_authority`: Core operational responsibilities and permission boundaries.
 
-### Section L1.5: Architectural Decision Records (ADR-01 to ADR-10)
-* `adr_id`: Unique identifier (`ADR-01` to `ADR-10`).
-* `title`: Architecture design decision title.
-* `context_and_problem`: Business or technical trigger necessitating a definitive architectural stance.
-* `decision`: Concrete choice made by the architecture board.
-* `consequences`: Trade-offs, operational implications, and downstream constraints.
+### Section L1.5: Master Requirements Register (REQ-001 to REQ-142)
+* `req_id`: Unique identifier (`REQ-001` through `REQ-142`). Mandatory.
+* `subsection`: Functional grouping:
+  * `A. Problem and Goals` (`REQ-001` to `REQ-006`)
+  * `B. Job Categories` (`REQ-010` to `REQ-017`)
+  * `C. Gig Marketplace` (`REQ-020` to `REQ-028`)
+  * `D. Core Workflows` (`REQ-030` to `REQ-040`)
+  * `E. Actors and Privileges` (`REQ-050` to `REQ-057`)
+  * `F. Data Domains Coverage` (`REQ-060` to `REQ-082`)
+  * `G. Data Standards` (`REQ-090` to `REQ-101`)
+  * `H. Integration Boundaries` (`REQ-110` to `REQ-119`)
+  * `I. Environment and Scale` (`REQ-120` to `REQ-124`)
+  * `J. Deliverables` (`REQ-130` to `REQ-142`)
+* `statement`: Concise, implementation-free statement of capability or business rule.
+* `source`: Source citation from brief (`S1` to `S7`, `B35`, `B46`, `B59`, etc.).
+* `priority`: MoSCoW classification (`Must`, `Should`, `Could`).
+* `ambiguity_note`: Clarification resolving brief silences or assumptions into concrete engineering rules.
+
+### Section L1.6: Vague Words Made Measurable
+* `brief_phrase`: Ambiguous adjective or qualitative phrase from source brief.
+* `risk_analysis`: Risk of subjective misinterpretation.
+* `proposed_number`: Deterministic numeric threshold or SLA target.
+* `test_method`: Concrete verification method (row counts, latency percentile runs, concurrency test).
+
+### Section L1.7: Assumptions Register (A1–A6)
+* `assumption_id`: Identifier (`A1` to `A6`).
+* `statement`: Operational or technical assumption.
+* `architectural_impact`: Impact on schema, infrastructure, or project planning.
+* `governance_link`: Approved architectural decision or policy authority.
+
+### Section L1.8: Ranked Open Questions (Q1–Q10)
+* `rank`: Priority ranking (`1` to `10`) based on architectural design severity.
+* `question_id`: Identifier (`Q1` to `Q10`).
+* `question_text`: Architectural dilemma or missing specification.
+* `impact_domain`: Affected system subsystem (e.g. `Analytics`, `Concurrency`, `RBAC`, `Data Dictionary`).
+* `owner`: Assigned resolution party (`Mentor`, `Team`, `Security Lead`, `Product Lead`).
+* `proposed_resolution`: Defensible stance adopted by the engineering team.
+
+### Section L1.9: Brief Coverage & Traceability Check
+* `brief_section`: Chapter or topic of the source brief (Sections 1 through 7).
+* `mapped_ids`: Complete list of mapped Goals (`G1`–`G4`), Requirements (`REQ-*`), and Out-of-Scope items (`OOS-*`).
+* `gate_status`: Formal audit confirmation (`100% Coverage`, `Gate G1 Certified`).
+
+### Section L1.10: Visual Requirements Taxonomy Hierarchy Diagram
+* `diagram_file`: Embedded high-resolution graphic (`requirements_taxonomy_diagram.png`).
+* `mermaid_source`: Complete executable Mermaid flowchart representing the four-level taxonomic tree.
+
+### Section L1.11: Quality Gate G1 Scorecard Structure (Composite: 8.96 / 10)
+* `evaluation_dimension`: The 6 standardized Step 01 evaluation criteria:
+  1. Requirements Completeness & Mapping (Weight: 25%, Score: 9.5, Weighted: 2.38)
+  2. Taxonomy & Structural Decomposition (Weight: 20%, Score: 8.5, Weighted: 1.70)
+  3. Measurability & NFR Quantification (Weight: 15%, Score: 9.0, Weighted: 1.35)
+  4. Prioritization & Ambiguity Handling (Weight: 15%, Score: 9.0, Weighted: 1.35)
+  5. Stakeholder, Privilege & Boundary Tracing (Weight: 15%, Score: 8.5, Weighted: 1.28)
+  6. Compliance & Data Standards Rigor (Weight: 10%, Score: 9.0, Weighted: 0.90)
+* `total_composite_score`: 8.96 / 10 (STATUS: PASSED Gate G1 Requirements Baseline).
+
+---
+
+## 4. Verification & Schema Validation Rules
+
+Any deliverable claiming compliance with this meta-model must satisfy the following validation rules:
+
+1. **Completeness Rule**: Every requirement ID in the sequence (`REQ-001`..`006`, `REQ-010`..`017`, `REQ-020`..`028`, `REQ-030`..`040`, `REQ-050`..`057`, `REQ-060`..`082`, `REQ-090`..`101`, `REQ-110`..`119`, `REQ-120`..`124`, `REQ-130`..`142`) must be present with zero missing identifiers.
+2. **Implementation Purity Rule**: Requirement statements must not leak physical schema keywords (e.g. `CREATE TABLE`, `FOREIGN KEY`, `B-tree index`, `UUIDv4`, `Argon2id`). Implementation mechanisms are reserved for the Ambiguity Resolution and Data Standards sections.
+3. **Traceability Invariant**: 100% of functional requirements must trace directly to a valid source citation (`S1` through `S7` or playbook section).
+4. **Boundary Invariant**: All external integrations must be paired with an explicit boundary contract in Section L1.8 (`REQ-110` through `REQ-119`) specifying ownership, stored vs referenced data, failure handling, and idempotency.
+5. **Open Question Governance**: All 10 open questions must include a concrete architectural stance to prevent blocking downstream modeling steps.
+6. **Scorecard Conformance**: The deliverable evaluation must adhere to the 6-dimension weighted matrix yielding a composite score $\ge 8.5 / 10$ (`8.96 / 10` baseline).

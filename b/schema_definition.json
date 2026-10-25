@@ -1,75 +1,148 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://talentra.internal/schemas/stakeholders-personas.json",
+  "$id": "https://talentra.internal/schemas/stakeholders-personas-roles.json",
   "title": "Talentra Stakeholders, Personas and Roles Schema",
-  "description": "Validation schema for Talentra stakeholders, personas, edge actors, and authorization matrix.",
+  "description": "Validation schema for Deliverable B: 14 human actors, 16 system daemons, 11-module CRUD matrix, decision log, and Gate G1 scorecard.",
   "type": "object",
   "required": [
     "metadata",
-    "stakeholder_taxonomy",
-    "persona_catalog",
-    "crud_entitlement_matrix",
-    "database_guardrails"
+    "decision_log",
+    "human_actors",
+    "system_daemons",
+    "persona_cards",
+    "entitlement_matrix",
+    "workflow_security_tests",
+    "sub_roles_extension",
+    "open_questions",
+    "gate_g1_scorecard",
+    "taxonomy_diagram"
   ],
   "properties": {
     "metadata": {
       "type": "object",
-      "required": ["docket_id", "version", "last_updated", "author", "reviewed_by", "status"],
+      "required": ["docket_id", "playbook_step", "version", "gate_status"],
       "properties": {
-        "docket_id": { "type": "string", "pattern": "^TAL-STK-[0-9]{4}$" },
+        "docket_id": { "type": "string" },
+        "playbook_step": { "type": "string" },
         "version": { "type": "string" },
-        "last_updated": { "type": "string", "format": "date" },
-        "author": { "type": "string" },
-        "reviewed_by": { "type": "string" },
-        "status": { "type": "string", "enum": ["Draft", "In Review", "Approved", "Superseded"] }
+        "gate_status": { "type": "string" }
       }
     },
-    "stakeholder_taxonomy": {
+    "decision_log": {
       "type": "array",
-      "minItems": 10,
+      "minItems": 15,
       "items": {
         "type": "object",
-        "required": ["stakeholder_id", "category", "description", "primary_responsibility"],
+        "required": ["id", "decision", "why_best", "alternative_rejected", "risk_mitigation"],
         "properties": {
-          "stakeholder_id": { "type": "string", "pattern": "^STK-[0-9]{2}$" },
-          "category": { "type": "string" },
-          "description": { "type": "string" },
-          "primary_responsibility": { "type": "string" }
+          "id": { "type": "string", "pattern": "^D-[0-9]{2}$" },
+          "decision": { "type": "string" },
+          "why_best": { "type": "string" },
+          "alternative_rejected": { "type": "string" },
+          "risk_mitigation": { "type": "string" }
         }
       }
     },
-    "persona_catalog": {
+    "human_actors": {
       "type": "array",
-      "minItems": 12,
+      "minItems": 14,
       "items": {
         "type": "object",
-        "required": ["persona_id", "name", "role_code", "actor_type", "interaction_frequency", "associated_requirements", "key_guardrail"],
+        "required": ["id", "actor", "group", "primary_goals", "use_frequency", "data_scope"],
         "properties": {
-          "persona_id": { "type": "string", "pattern": "^P-[0-9]{2}$" },
-          "name": { "type": "string" },
-          "role_code": { "type": "string" },
-          "actor_type": { "type": "string", "enum": ["CORE_HUMAN", "EDGE_REGULATOR", "EDGE_SUPPORT", "EDGE_SYSTEM"] },
-          "interaction_frequency": { "type": "string" },
-          "associated_requirements": {
-            "type": "array",
-            "items": { "type": "string", "pattern": "^REQ-[0-9]{2}$" }
-          },
-          "key_guardrail": { "type": "string" }
+          "id": { "type": "string", "pattern": "^ACT-[0-9]{2}$" },
+          "actor": { "type": "string" },
+          "group": { "type": "string" },
+          "primary_goals": { "type": "string" },
+          "use_frequency": { "type": "string" },
+          "data_scope": { "type": "string" }
         }
       }
     },
-    "crud_entitlement_matrix": {
+    "system_daemons": {
+      "type": "array",
+      "minItems": 16,
+      "items": {
+        "type": "object",
+        "required": ["id", "system_actor", "type", "what_it_reads_writes", "boundary_rule"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^SYS-[0-9]{2}$" },
+          "system_actor": { "type": "string" },
+          "type": { "type": "string" },
+          "what_it_reads_writes": { "type": "string" },
+          "boundary_rule": { "type": "string" }
+        }
+      }
+    },
+    "persona_cards": {
       "type": "array",
       "minItems": 11,
       "items": {
         "type": "object",
-        "required": ["module_code", "entitlements"],
+        "required": ["persona_actor", "context", "goal", "pain_today", "success_signal"],
         "properties": {
-          "module_code": { "type": "string" },
-          "entitlements": { "type": "object" }
+          "persona_actor": { "type": "string" },
+          "context": { "type": "string" },
+          "goal": { "type": "string" },
+          "pain_today": { "type": "string" },
+          "success_signal": { "type": "string" }
         }
       }
     },
-    "database_guardrails": { "type": "object" }
+    "entitlement_matrix": {
+      "type": "object",
+      "required": ["customer_facing", "account_and_platform"],
+      "properties": {
+        "customer_facing": { "type": "array" },
+        "account_and_platform": { "type": "array" }
+      }
+    },
+    "workflow_security_tests": {
+      "type": "array",
+      "minItems": 16,
+      "items": {
+        "type": "object",
+        "required": ["workflow_id", "title", "primary_actor", "negative_test", "expected_assertion"],
+        "properties": {
+          "workflow_id": { "type": "string", "pattern": "^W[0-9]+$" },
+          "title": { "type": "string" },
+          "primary_actor": { "type": "string" },
+          "negative_test": { "type": "string" },
+          "expected_assertion": { "type": "string" }
+        }
+      }
+    },
+    "sub_roles_extension": { "type": "object" },
+    "open_questions": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "required": ["id", "question", "default_assumed", "design_impact"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^Q-[0-9]{2}$" },
+          "question": { "type": "string" },
+          "default_assumed": { "type": "string" },
+          "design_impact": { "type": "string" }
+        }
+      }
+    },
+    "gate_g1_scorecard": {
+      "type": "object",
+      "required": ["composite_score", "status", "dimensions"],
+      "properties": {
+        "composite_score": { "type": "number" },
+        "status": { "type": "string" },
+        "dimensions": { "type": "array" }
+      }
+    },
+    "taxonomy_diagram": {
+      "type": "object",
+      "required": ["image_path", "mermaid_available"],
+      "properties": {
+        "image_path": { "type": "string" },
+        "mermaid_available": { "type": "boolean" }
+      }
+    }
   }
 }
