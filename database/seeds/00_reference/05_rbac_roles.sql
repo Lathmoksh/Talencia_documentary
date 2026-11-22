@@ -1,11 +1,10 @@
--- Reference Seed: RBAC Roles
-INSERT INTO identity.role (id, role_code, role_name, role_scope, description, is_system_role, is_active, created_at, updated_at)
+-- Reference Seed: Platform RBAC Roles
+INSERT INTO identity.role (id, role_code, role_name, role_scope, description, is_system_role, is_active, created_at, created_by, updated_at, updated_by)
 VALUES
-  ('00000000-0000-4000-8000-000000000081', 'SYS_ADMIN', 'System Administrator', 'GLOBAL', 'Full system management and infrastructure control', true, true, '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z'),
-  ('00000000-0000-4000-8000-000000000082', 'TENANT_ADMIN', 'Tenant Administrator', 'TENANT', 'Corporate tenant account owner and recruiter administrator', true, true, '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z'),
-  ('00000000-0000-4000-8000-000000000083', 'RECRUITER', 'Corporate Recruiter', 'TENANT', 'Creates requisitions, screens candidates, schedules interviews', true, true, '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z'),
-  ('00000000-0000-4000-8000-000000000084', 'CANDIDATE', 'Job Seeker Candidate', 'USER', 'Applies for positions, manages resume, sets privacy controls', true, true, '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z'),
-  ('00000000-0000-4000-8000-000000000085', 'GIG_WORKER', 'Freelance Gig Specialist', 'USER', 'Lists services, books contracts, submits milestones', true, true, '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z'),
-  ('00000000-0000-4000-8000-000000000086', 'TPO_OFFICER', 'University Placement Officer', 'CAMPUS', 'Coordinates campus cohort placement drives and student rosters', true, true, '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z'),
-  ('00000000-0000-4000-8000-000000000087', 'AUDITOR', 'Statutory Compliance Auditor', 'GLOBAL', 'Read-only access to audit trails, consent records and DPDP logs', true, true, '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z')
+  ('00000000-0000-4000-8000-000000000041', 'SUPER_ADMIN', 'Super Administrator', 'GLOBAL', 'Full platform operational governance and tenant administration', true, true, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000'),
+  ('00000000-0000-4000-8000-000000000042', 'ENTERPRISE_ADMIN', 'Employer Account Administrator', 'ORGANISATION', 'Manage employer company profile, seats, licences and requisitions', true, true, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000'),
+  ('00000000-0000-4000-8000-000000000043', 'RECRUITER', 'Corporate Recruiter', 'ORGANISATION', 'Manage assigned jobs, search candidates, schedule interviews', true, true, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000'),
+  ('00000000-0000-4000-8000-000000000044', 'SOURCING_CONSULTANT', 'Third-Party Sourcing Consultant', 'GLOBAL', 'Source candidates for requisitions explicitly open to consultants', true, true, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000'),
+  ('00000000-0000-4000-8000-000000000045', 'CANDIDATE', 'Job Seeker & Gig Worker', 'INDIVIDUAL', 'Build profile, apply to jobs, manage gig contracts and privacy', true, true, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000'),
+  ('00000000-0000-4000-8000-000000000046', 'TPO_OFFICER', 'University Placement Officer', 'INSTITUTION', 'Manage campus cohorts, drive registrations, and track student offers', true, true, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000')
 ON CONFLICT (id) DO NOTHING;

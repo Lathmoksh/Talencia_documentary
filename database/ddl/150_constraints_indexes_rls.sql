@@ -359,13 +359,18 @@ CREATE INDEX IF NOT EXISTS idx_candidate_profile_city ON candidate.candidate_pro
 CREATE INDEX IF NOT EXISTS idx_candidate_profile_exp ON candidate.candidate_profile (total_experience_months);
 CREATE INDEX IF NOT EXISTS idx_candidate_profile_searchable ON candidate.candidate_profile (is_profile_searchable) WHERE is_profile_searchable = TRUE;
 CREATE INDEX IF NOT EXISTS idx_candidate_skill_lookup ON candidate.candidate_skill (candidate_id, skill_id);
-CREATE INDEX IF NOT EXISTS idx_candidate_block_lookup ON candidate.candidate_block_list (candidate_id, blocked_entity_id);
 
+-- Exact column names in candidate_block_list: blocked_organisation_id, blocked_recruiter_user_id
+CREATE INDEX IF NOT EXISTS idx_candidate_block_org ON candidate.candidate_block_list (candidate_id, blocked_organisation_id);
+CREATE INDEX IF NOT EXISTS idx_candidate_block_recruiter ON candidate.candidate_block_list (candidate_id, blocked_recruiter_user_id);
+
+-- Exact column names in job_requisition: publish_status, open_to_consultants
 CREATE INDEX IF NOT EXISTS idx_job_requisition_org ON recruitment.job_requisition (organisation_id);
-CREATE INDEX IF NOT EXISTS idx_job_requisition_status ON recruitment.job_requisition (status);
-CREATE INDEX IF NOT EXISTS idx_job_requisition_consultant ON recruitment.job_requisition (is_open_for_consultants) WHERE is_open_for_consultants = TRUE;
+CREATE INDEX IF NOT EXISTS idx_job_requisition_publish_status ON recruitment.job_requisition (publish_status);
+CREATE INDEX IF NOT EXISTS idx_job_requisition_consultant ON recruitment.job_requisition (open_to_consultants) WHERE open_to_consultants = TRUE;
 
-CREATE INDEX IF NOT EXISTS idx_job_application_req_cand ON application.job_application (job_requisition_id, candidate_id);
+-- Exact column name in job_application: requisition_id
+CREATE INDEX IF NOT EXISTS idx_job_application_req_cand ON application.job_application (requisition_id, candidate_id);
 CREATE INDEX IF NOT EXISTS idx_job_application_status ON application.job_application (application_status);
 
 CREATE INDEX IF NOT EXISTS idx_gig_request_status ON gig.gig_request (request_status);
@@ -379,11 +384,13 @@ CREATE INDEX IF NOT EXISTS idx_notification_user ON engagement.notification_deli
 -- ROW-LEVEL SECURITY (RLS) POLICIES (Section 3 Rules You Must Honour)
 -- -------------------------------------------------------------
 ALTER TABLE candidate.candidate_profile ENABLE ROW LEVEL SECURITY;
+ALTER TABLE candidate.candidate_block_list ENABLE ROW LEVEL SECURITY;
 ALTER TABLE recruitment.job_requisition ENABLE ROW LEVEL SECURITY;
+ALTER TABLE application.job_application ENABLE ROW LEVEL SECURITY;
 ALTER TABLE identity.user_credential ENABLE ROW LEVEL SECURITY;
 ALTER TABLE billing.wallet_account ENABLE ROW LEVEL SECURITY;
 
--- Policy 1: Candidate can only view & edit their own profile
+-- Policy 1: Candidate can view and update their own profile
 CREATE POLICY p_candidate_own_profile ON candidate.candidate_profile
     FOR ALL
     USING (
@@ -391,7 +398,7 @@ CREATE POLICY p_candidate_own_profile ON candidate.candidate_profile
         OR current_setting('app.current_role', true) IN ('SUPER_ADMIN', 'ADMIN')
     );
 
--- Policy 2: Recruiter search with Anti-Join Privacy Shield (candidate may block recruiters)
+-- Policy 2: Candidate search with Anti-Join Privacy Shield (using exact column blocked_organisation_id)
 CREATE POLICY p_candidate_recruiter_search ON candidate.candidate_profile
     FOR SELECT
     USING (
@@ -401,11 +408,23 @@ CREATE POLICY p_candidate_recruiter_search ON candidate.candidate_profile
             SELECT 1 
             FROM candidate.candidate_block_list bl
             WHERE bl.candidate_id = candidate.candidate_profile.id
-              AND bl.blocked_entity_id = NULLIF(current_setting('app.current_org_id', true), '')::UUID
+              AND bl.blocked_organisation_id = NULLIF(current_setting('app.current_org_id', true), '')::UUID
         )
     );
 
--- Policy 3: Recruiter may ONLY see job requirements assigned to their own company
+-- Policy 3: Candidate can view and manage only their own block entries
+CREATE POLICY p_candidate_own_blocks ON candidate.candidate_block_list
+    FOR ALL
+    USING (
+        candidate_id IN (
+            SELECT cp.id 
+            FROM candidate.candidate_profile cp 
+            WHERE cp.user_id = NULLIF(current_setting('app.current_user_id', true), '')::UUID
+        )
+        OR current_setting('app.current_role', true) IN ('SUPER_ADMIN', 'ADMIN')
+    );
+
+-- Policy 4: Recruiter may ONLY see job requisitions assigned to their own company
 CREATE POLICY p_recruiter_own_company_requisitions ON recruitment.job_requisition
     FOR ALL
     USING (
@@ -413,17 +432,41 @@ CREATE POLICY p_recruiter_own_company_requisitions ON recruitment.job_requisitio
         OR current_setting('app.current_role', true) IN ('SUPER_ADMIN', 'ADMIN')
     );
 
--- Policy 4: Consultant may ONLY work on job requirements open to consultants
+-- Policy 5: Sourcing Consultant may ONLY view requisitions open to consultants (open_to_consultants & publish_status)
 CREATE POLICY p_consultant_open_requisitions ON recruitment.job_requisition
     FOR SELECT
     USING (
         current_setting('app.current_role', true) = 'CONSULTANT'
-        AND is_open_for_consultants = TRUE
-        AND status = 'PUBLISHED'
+        AND open_to_consultants = TRUE
+        AND publish_status = 'PUBLISHED'
         AND deleted_at IS NULL
     );
 
--- Policy 5: User can only access their own credentials
+-- Policy 6: Candidate can view/withdraw only their own applications
+CREATE POLICY p_candidate_own_applications ON application.job_application
+    FOR ALL
+    USING (
+        candidate_id IN (
+            SELECT cp.id 
+            FROM candidate.candidate_profile cp 
+            WHERE cp.user_id = NULLIF(current_setting('app.current_user_id', true), '')::UUID
+        )
+        OR current_setting('app.current_role', true) IN ('SUPER_ADMIN', 'ADMIN')
+    );
+
+-- Policy 7: Recruiter can view applications only for their own company requisitions
+CREATE POLICY p_recruiter_own_applications ON application.job_application
+    FOR SELECT
+    USING (
+        requisition_id IN (
+            SELECT jr.id 
+            FROM recruitment.job_requisition jr 
+            WHERE jr.organisation_id = NULLIF(current_setting('app.current_org_id', true), '')::UUID
+        )
+        OR current_setting('app.current_role', true) IN ('SUPER_ADMIN', 'ADMIN')
+    );
+
+-- Policy 8: User can only access their own credentials
 CREATE POLICY p_user_own_credentials ON identity.user_credential
     FOR ALL
     USING (
@@ -431,10 +474,10 @@ CREATE POLICY p_user_own_credentials ON identity.user_credential
         OR current_setting('app.current_role', true) = 'SUPER_ADMIN'
     );
 
--- Policy 6: Organisation wallet access isolated to owning organisation
+-- Policy 9: Organisation wallet access strictly isolated to owning account (using exact column account_id)
 CREATE POLICY p_organisation_wallet_isolation ON billing.wallet_account
-    FOR SELECT
+    FOR ALL
     USING (
-        organisation_id = NULLIF(current_setting('app.current_org_id', true), '')::UUID
+        account_id = NULLIF(current_setting('app.current_account_id', true), '')::UUID
         OR current_setting('app.current_role', true) IN ('SUPER_ADMIN', 'FINANCE_ADMIN')
     );

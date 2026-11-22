@@ -7,7 +7,7 @@
 -- Table: application.job_application
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS application.job_application (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     requisition_id UUID NOT NULL,
     candidate_id UUID NOT NULL,
     resume_id UUID NOT NULL,
@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS application.job_application (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     deleted_at TIMESTAMPTZ,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_job_application PRIMARY KEY (id, applied_at),
     CONSTRAINT chk_job_application_application_status CHECK (application_status IN ('SUBMITTED', 'SCREENING_PASSED', 'SCREENING_FAILED', 'SHORTLISTED', 'INTERVIEW_SCHEDULED', 'INTERVIEWED', 'OFFER_EXTENDED', 'OFFER_ACCEPTED', 'OFFER_DECLINED', 'JOINED_HIRED', 'REJECTED', 'WITHDRAWN_CANDIDATE'))
 ) PARTITION BY RANGE (applied_at);
@@ -47,16 +47,16 @@ CREATE TABLE IF NOT EXISTS application.job_application_default PARTITION OF appl
 -- Table: application.application_question_answer
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS application.application_question_answer (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     application_id UUID NOT NULL,
     question_id UUID NOT NULL,
     selected_option_id UUID,
     free_text_answer TEXT,
     score_awarded INTEGER DEFAULT 0 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_application_question_answer PRIMARY KEY (id)
 );
 
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS application.application_question_answer (
 -- Table: application.application_stage_history
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS application.application_stage_history (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     application_id UUID NOT NULL,
     from_stage VARCHAR(30) NOT NULL,
     to_stage VARCHAR(30) NOT NULL,
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS application.application_stage_history (
     stage_notes VARCHAR(500),
     transition_timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_application_stage_history PRIMARY KEY (id, created_at)
 ) PARTITION BY RANGE (created_at);
 
@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS application.application_stage_history_default PARTITI
 -- Table: application.job_interview
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS application.job_interview (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     application_id UUID NOT NULL,
     interview_round SMALLINT DEFAULT 1 NOT NULL,
     interview_format VARCHAR(30) NOT NULL,
@@ -106,8 +106,8 @@ CREATE TABLE IF NOT EXISTS application.job_interview (
     interview_status VARCHAR(30) DEFAULT 'SCHEDULED' NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_job_interview PRIMARY KEY (id)
 );
 
@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS application.job_interview (
 -- Table: application.interview_feedback
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS application.interview_feedback (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     interview_id UUID NOT NULL,
     interviewer_user_id UUID NOT NULL,
     technical_score NUMERIC(3,1) NOT NULL,
@@ -127,9 +127,9 @@ CREATE TABLE IF NOT EXISTS application.interview_feedback (
     feedback_notes TEXT,
     submitted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_interview_feedback PRIMARY KEY (id)
 );
 
@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS application.interview_feedback (
 -- Table: application.job_offer
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS application.job_offer (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     application_id UUID NOT NULL,
     offered_salary_amount NUMERIC(12,2) NOT NULL,
     salary_currency_code CHAR(3) DEFAULT 'USD' NOT NULL,
@@ -146,10 +146,10 @@ CREATE TABLE IF NOT EXISTS application.job_offer (
     offer_letter_storage_path VARCHAR(500) NOT NULL,
     offer_status VARCHAR(30) DEFAULT 'EXTENDED' NOT NULL,
     responded_at TIMESTAMPTZ,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_job_offer PRIMARY KEY (id),
     CONSTRAINT uq_job_offer_application_id UNIQUE (application_id)
 );

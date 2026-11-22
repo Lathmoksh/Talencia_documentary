@@ -7,7 +7,7 @@
 -- Table: licensing.subscription_plan
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS licensing.subscription_plan (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     plan_code VARCHAR(50) NOT NULL,
     plan_name VARCHAR(100) NOT NULL,
     tier_level VARCHAR(20) NOT NULL,
@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS licensing.subscription_plan (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_subscription_plan PRIMARY KEY (id),
     CONSTRAINT uq_subscription_plan_plan_code UNIQUE (plan_code)
 );
@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS licensing.subscription_plan (
 -- Table: licensing.subscription_licence
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS licensing.subscription_licence (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     account_id UUID NOT NULL,
     plan_id UUID NOT NULL,
     licence_status VARCHAR(20) DEFAULT 'ACTIVE' NOT NULL,
@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS licensing.subscription_licence (
     auto_renew BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_subscription_licence PRIMARY KEY (id),
     CONSTRAINT chk_subscription_licence_licence_status CHECK (licence_status IN ('PENDING_PROVISIONING', 'ACTIVE_COMMISSIONED', 'RENEWAL_DUE', 'GRACE_PERIOD', 'SUSPENDED_NON_PAYMENT', 'TERMINATED_EXPIRED'))
 );
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS licensing.subscription_licence (
 -- Table: licensing.licence_entitlement_usage
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS licensing.licence_entitlement_usage (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     licence_id UUID NOT NULL,
     entitlement_type VARCHAR(40) NOT NULL,
     billing_period_start DATE NOT NULL,
@@ -59,8 +59,8 @@ CREATE TABLE IF NOT EXISTS licensing.licence_entitlement_usage (
     consumed_quota INTEGER DEFAULT 0 NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_licence_entitlement_usage PRIMARY KEY (id)
 );
 

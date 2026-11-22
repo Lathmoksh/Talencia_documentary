@@ -7,7 +7,7 @@
 -- Table: billing.wallet_account
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.wallet_account (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     account_id UUID NOT NULL,
     wallet_type VARCHAR(20) DEFAULT 'OPERATIONAL' NOT NULL,
     currency_code CHAR(3) DEFAULT 'USD' NOT NULL,
@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS billing.wallet_account (
     is_locked BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_wallet_account PRIMARY KEY (id),
     CONSTRAINT uq_wallet_account_account_id UNIQUE (account_id),
     CONSTRAINT chk_wallet_account_rule_1 CHECK (current_balance >= 0.00),
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS billing.wallet_account (
 -- Table: billing.wallet_ledger
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.wallet_ledger (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     wallet_id UUID NOT NULL,
     transaction_group_id UUID NOT NULL,
     entry_type VARCHAR(10) NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS billing.wallet_ledger (
     reference_entity_id UUID NOT NULL,
     notes VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_wallet_ledger PRIMARY KEY (id),
     CONSTRAINT chk_wallet_ledger_rule_1 CHECK (entry_type IN ('DEBIT', 'CREDIT')),
     CONSTRAINT chk_wallet_ledger_rule_2 CHECK (amount > 0.00)
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS billing.wallet_ledger (
 -- Table: billing.payment_order
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.payment_order (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     account_id UUID NOT NULL,
     order_type VARCHAR(30) NOT NULL,
     amount NUMERIC(12,2) NOT NULL,
@@ -58,8 +58,8 @@ CREATE TABLE IF NOT EXISTS billing.payment_order (
     payment_gateway_order_reference VARCHAR(100),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_payment_order PRIMARY KEY (id),
     CONSTRAINT uq_payment_order_payment_gateway_order_reference UNIQUE (payment_gateway_order_reference),
     CONSTRAINT chk_payment_order_order_status CHECK (order_status IN ('INITIALIZED', 'PROCESSING_PAYMENT', 'SETTLED_SUCCESS', 'PAYMENT_FAILED', 'EXPIRED_TIMEOUT', 'CANCELLED_USER'))
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS billing.payment_order (
 -- Table: billing.payment_transaction
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.payment_transaction (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     order_id UUID NOT NULL,
     wallet_id UUID,
     gateway_transaction_reference VARCHAR(100) NOT NULL,
@@ -79,9 +79,9 @@ CREATE TABLE IF NOT EXISTS billing.payment_transaction (
     transaction_status VARCHAR(20) NOT NULL,
     gateway_response_code VARCHAR(50),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_payment_transaction PRIMARY KEY (id),
     CONSTRAINT uq_payment_transaction_gateway_transaction_reference UNIQUE (gateway_transaction_reference)
 );
@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS billing.payment_transaction (
 -- Table: billing.payment_gateway_event
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.payment_gateway_event (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     gateway_event_id VARCHAR(100) NOT NULL,
     event_type VARCHAR(50) NOT NULL,
     payload_json TEXT NOT NULL,
@@ -99,9 +99,9 @@ CREATE TABLE IF NOT EXISTS billing.payment_gateway_event (
     received_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     processed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_payment_gateway_event PRIMARY KEY (id),
     CONSTRAINT uq_payment_gateway_event_gateway_event_id UNIQUE (gateway_event_id)
 );
@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS billing.payment_gateway_event (
 -- Table: billing.invoice
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.invoice (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     account_id UUID NOT NULL,
     order_id UUID NOT NULL,
     invoice_number VARCHAR(50) NOT NULL,
@@ -124,8 +124,8 @@ CREATE TABLE IF NOT EXISTS billing.invoice (
     pdf_storage_path VARCHAR(500) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_invoice PRIMARY KEY (id),
     CONSTRAINT uq_invoice_order_id UNIQUE (order_id),
     CONSTRAINT uq_invoice_invoice_number UNIQUE (invoice_number),
@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS billing.invoice (
 -- Table: billing.invoice_item
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.invoice_item (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     invoice_id UUID NOT NULL,
     item_description VARCHAR(255) NOT NULL,
     quantity INTEGER DEFAULT 1 NOT NULL,
@@ -149,9 +149,9 @@ CREATE TABLE IF NOT EXISTS billing.invoice_item (
     currency_code CHAR(3) DEFAULT 'USD' NOT NULL,
     tax_rate_percentage NUMERIC(5,2) DEFAULT 18.00 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_invoice_item PRIMARY KEY (id),
     CONSTRAINT chk_invoice_item_rule_1 CHECK (quantity > 0),
     CONSTRAINT chk_invoice_item_rule_2 CHECK (unit_price >= 0.00),
@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS billing.invoice_item (
 -- Table: billing.profile_download_history
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.profile_download_history (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     recruiter_user_id UUID NOT NULL,
     organisation_id UUID NOT NULL,
     candidate_id UUID NOT NULL,
@@ -171,7 +171,7 @@ CREATE TABLE IF NOT EXISTS billing.profile_download_history (
     dpdp_consent_verified BOOLEAN DEFAULT TRUE NOT NULL,
     downloaded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_profile_download_history PRIMARY KEY (id)
 );
 

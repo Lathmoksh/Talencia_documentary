@@ -686,8 +686,8 @@
       {
         "name": "language_code",
         "biz_name": "ISO 639-1 Language Code",
-        "type": "CHAR",
-        "length_prec": "2",
+        "type": "VARCHAR",
+        "length_prec": "10",
         "nullable": false,
         "default": null,
         "is_pk": true,
@@ -1650,8 +1650,8 @@
       {
         "name": "language_code",
         "biz_name": "ISO 639-1 Language Code",
-        "type": "CHAR",
-        "length_prec": "2",
+        "type": "VARCHAR",
+        "length_prec": "10",
         "nullable": false,
         "default": null,
         "is_pk": false,
@@ -6130,8 +6130,8 @@
       {
         "name": "language_code",
         "biz_name": "ISO 639-1 Language Code",
-        "type": "CHAR",
-        "length_prec": "2",
+        "type": "VARCHAR",
+        "length_prec": "10",
         "nullable": false,
         "default": null,
         "is_pk": false,
@@ -17342,8 +17342,8 @@
       {
         "name": "language_code",
         "biz_name": "Locale Code",
-        "type": "CHAR",
-        "length_prec": "5",
+        "type": "VARCHAR",
+        "length_prec": "10",
         "nullable": false,
         "default": "en_US",
         "is_pk": false,

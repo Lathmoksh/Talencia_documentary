@@ -42,9 +42,9 @@ CREATE TABLE IF NOT EXISTS analytics.dim_candidate (
     is_current BOOLEAN DEFAULT TRUE NOT NULL,
     salary_currency_code CHAR(3) DEFAULT 'INR' NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_dim_candidate PRIMARY KEY (candidate_key)
 );
 
@@ -65,9 +65,9 @@ CREATE TABLE IF NOT EXISTS analytics.dim_organisation (
     row_expiration_date DATE DEFAULT '9999-12-31' NOT NULL,
     is_current BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_dim_organisation PRIMARY KEY (organisation_key)
 );
 
@@ -91,9 +91,9 @@ CREATE TABLE IF NOT EXISTS analytics.dim_job_requisition (
     is_current BOOLEAN DEFAULT TRUE NOT NULL,
     salary_currency_code CHAR(3) DEFAULT 'INR' NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_dim_job_requisition PRIMARY KEY (requisition_key)
 );
 
@@ -107,9 +107,9 @@ CREATE TABLE IF NOT EXISTS analytics.dim_pipeline_stage (
     funnel_order SMALLINT NOT NULL,
     is_terminal_stage BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_dim_pipeline_stage PRIMARY KEY (stage_key),
     CONSTRAINT uq_dim_pipeline_stage_stage_code UNIQUE (stage_code)
 );
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS analytics.dim_pipeline_stage (
 -- Table: analytics.fact_application_event
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS analytics.fact_application_event (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     date_key INTEGER NOT NULL,
     candidate_key INTEGER NOT NULL,
     organisation_key INTEGER NOT NULL,
@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS analytics.fact_application_event (
     to_stage_key INTEGER NOT NULL,
     stage_duration_hours NUMERIC(8,2) DEFAULT 0.00 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_fact_application_event PRIMARY KEY (id)
 );
 
@@ -135,14 +135,14 @@ CREATE TABLE IF NOT EXISTS analytics.fact_application_event (
 -- Table: analytics.fact_profile_download
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS analytics.fact_profile_download (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     date_key INTEGER NOT NULL,
     organisation_key INTEGER NOT NULL,
     candidate_key INTEGER NOT NULL,
     recruiter_user_id UUID NOT NULL,
     credits_consumed INTEGER DEFAULT 1 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_fact_profile_download PRIMARY KEY (id)
 );
 
@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS analytics.fact_profile_download (
 -- Table: analytics.fact_gig_contract
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS analytics.fact_gig_contract (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     date_key INTEGER NOT NULL,
     organisation_key INTEGER NOT NULL,
     worker_user_id UUID NOT NULL,
@@ -158,7 +158,7 @@ CREATE TABLE IF NOT EXISTS analytics.fact_gig_contract (
     total_value_usd NUMERIC(12,2) NOT NULL,
     final_performance_rating NUMERIC(3,2),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_fact_gig_contract PRIMARY KEY (id)
 );
 
@@ -166,7 +166,7 @@ CREATE TABLE IF NOT EXISTS analytics.fact_gig_contract (
 -- Table: analytics.fact_wallet_transaction
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS analytics.fact_wallet_transaction (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     date_key INTEGER NOT NULL,
     organisation_key INTEGER NOT NULL,
     transaction_category VARCHAR(30) NOT NULL,
@@ -175,7 +175,7 @@ CREATE TABLE IF NOT EXISTS analytics.fact_wallet_transaction (
     net_variance NUMERIC(14,2) DEFAULT 0.00 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     currency_code CHAR(3) DEFAULT 'INR' NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_fact_wallet_transaction PRIMARY KEY (id)
 );
 

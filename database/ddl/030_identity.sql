@@ -7,7 +7,7 @@
 -- Table: identity.user_account
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS identity.user_account (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     email VARCHAR(254) NOT NULL,
     phone_country_code VARCHAR(5) NOT NULL,
     phone_number VARCHAR(20) NOT NULL,
@@ -20,9 +20,9 @@ CREATE TABLE IF NOT EXISTS identity.user_account (
     locked_until TIMESTAMPTZ,
     last_login_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid,
     deleted_at TIMESTAMPTZ,
     CONSTRAINT pk_user_account PRIMARY KEY (id),
     CONSTRAINT uq_user_account_email UNIQUE (email),
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS identity.user_account (
 -- Table: identity.user_credential
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS identity.user_credential (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     user_id UUID NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     password_salt VARCHAR(64) NOT NULL,
@@ -43,8 +43,8 @@ CREATE TABLE IF NOT EXISTS identity.user_credential (
     must_change_password BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_user_credential PRIMARY KEY (id),
     CONSTRAINT uq_user_credential_user_id UNIQUE (user_id)
 );
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS identity.user_credential (
 -- Table: identity.role
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS identity.role (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     role_code VARCHAR(50) NOT NULL,
     role_name VARCHAR(100) NOT NULL,
     role_scope VARCHAR(30) NOT NULL,
@@ -62,8 +62,8 @@ CREATE TABLE IF NOT EXISTS identity.role (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_role PRIMARY KEY (id),
     CONSTRAINT uq_role_role_code UNIQUE (role_code)
 );
@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS identity.role (
 -- Table: identity.user_role
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS identity.user_role (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     user_id UUID NOT NULL,
     role_id UUID NOT NULL,
     granted_by UUID NOT NULL,
@@ -80,9 +80,9 @@ CREATE TABLE IF NOT EXISTS identity.user_role (
     expires_at TIMESTAMPTZ,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_user_role PRIMARY KEY (id)
 );
 
@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS identity.user_role (
 -- Table: identity.user_active_session
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS identity.user_active_session (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     user_id UUID NOT NULL,
     session_token_hash CHAR(64) NOT NULL,
     device_id VARCHAR(100) NOT NULL,
@@ -103,9 +103,9 @@ CREATE TABLE IF NOT EXISTS identity.user_active_session (
     revoked_at TIMESTAMPTZ,
     revocation_reason VARCHAR(100),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_user_active_session PRIMARY KEY (id),
     CONSTRAINT uq_user_active_session_session_token_hash UNIQUE (session_token_hash)
 );
@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS identity.user_active_session (
 -- Table: identity.service_api_key
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS identity.service_api_key (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     user_id UUID NOT NULL,
     key_prefix VARCHAR(16) NOT NULL,
     key_hash CHAR(64) NOT NULL,
@@ -126,9 +126,9 @@ CREATE TABLE IF NOT EXISTS identity.service_api_key (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     revoked_at TIMESTAMPTZ,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_service_api_key PRIMARY KEY (id),
     CONSTRAINT uq_service_api_key_key_prefix UNIQUE (key_prefix),
     CONSTRAINT uq_service_api_key_key_hash UNIQUE (key_hash)

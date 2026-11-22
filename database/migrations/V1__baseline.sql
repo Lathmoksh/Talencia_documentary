@@ -13,24 +13,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "btree_gist";
 
--- Trigger function for automatic updated_at maintenance
-CREATE OR REPLACE FUNCTION set_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Trigger function to enforce immutable append-only ledgers
-CREATE OR REPLACE FUNCTION enforce_append_only()
-RETURNS TRIGGER AS $$
-BEGIN
-    RAISE EXCEPTION 'Table % is strictly append-only. UPDATE and DELETE operations are prohibited by law.', TG_TABLE_NAME;
-END;
-$$ LANGUAGE plpgsql;
-
--- Pure PostgreSQL 16 time-ordered UUIDv7 generator for large tables (B-tree locality)
+-- Pure PostgreSQL 16 time-ordered UUIDv7 generator for large tables & primary keys (B-tree locality)
 CREATE OR REPLACE FUNCTION generate_uuid_v7()
 RETURNS UUID AS $$
 DECLARE
@@ -54,6 +37,23 @@ BEGIN
     uuid_bytes := SET_BYTE(uuid_bytes, 4, ((unix_time_ms >> 8) & 255)::INT);
     uuid_bytes := SET_BYTE(uuid_bytes, 5, (unix_time_ms & 255)::INT);
     RETURN ENCODE(uuid_bytes, 'hex')::UUID;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger function for automatic updated_at maintenance
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger function to enforce immutable append-only ledgers
+CREATE OR REPLACE FUNCTION enforce_append_only()
+RETURNS TRIGGER AS $$
+BEGIN
+    RAISE EXCEPTION 'Table % is strictly append-only. UPDATE and DELETE operations are prohibited by law.', TG_TABLE_NAME;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -86,7 +86,7 @@ CREATE SCHEMA IF NOT EXISTS analytics;
 -- Table: master_data.country
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS master_data.country (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     iso_alpha2_code CHAR(2) NOT NULL,
     iso_alpha3_code CHAR(3) NOT NULL,
     country_name VARCHAR(100) NOT NULL,
@@ -96,8 +96,8 @@ CREATE TABLE IF NOT EXISTS master_data.country (
     sort_order INTEGER DEFAULT 100 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_country PRIMARY KEY (id),
     CONSTRAINT uq_country_iso_alpha2_code UNIQUE (iso_alpha2_code),
     CONSTRAINT uq_country_iso_alpha3_code UNIQUE (iso_alpha3_code)
@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS master_data.country (
 -- Table: master_data.state
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS master_data.state (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     country_id UUID NOT NULL,
     state_code VARCHAR(10) NOT NULL,
     state_name VARCHAR(100) NOT NULL,
@@ -115,8 +115,8 @@ CREATE TABLE IF NOT EXISTS master_data.state (
     sort_order INTEGER DEFAULT 100 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_state PRIMARY KEY (id)
 );
 
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS master_data.state (
 -- Table: master_data.city
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS master_data.city (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     country_id UUID NOT NULL,
     state_id UUID NOT NULL,
     city_name VARCHAR(100) NOT NULL,
@@ -133,8 +133,8 @@ CREATE TABLE IF NOT EXISTS master_data.city (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_city PRIMARY KEY (id)
 );
 
@@ -150,8 +150,8 @@ CREATE TABLE IF NOT EXISTS master_data.currency (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_currency PRIMARY KEY (currency_code),
     CONSTRAINT uq_currency_iso_numeric_code UNIQUE (iso_numeric_code)
 );
@@ -160,15 +160,15 @@ CREATE TABLE IF NOT EXISTS master_data.currency (
 -- Table: master_data.language
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS master_data.language (
-    language_code CHAR(2) NOT NULL,
+    language_code VARCHAR(10) NOT NULL,
     language_name VARCHAR(50) NOT NULL,
     native_name VARCHAR(100) NOT NULL,
     is_rtl BOOLEAN DEFAULT FALSE NOT NULL,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_language PRIMARY KEY (language_code)
 );
 
@@ -176,7 +176,7 @@ CREATE TABLE IF NOT EXISTS master_data.language (
 -- Table: master_data.industry
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS master_data.industry (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     industry_code VARCHAR(30) NOT NULL,
     industry_name VARCHAR(100) NOT NULL,
     description VARCHAR(500),
@@ -184,8 +184,8 @@ CREATE TABLE IF NOT EXISTS master_data.industry (
     sort_order INTEGER DEFAULT 100 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_industry PRIMARY KEY (id),
     CONSTRAINT uq_industry_industry_code UNIQUE (industry_code)
 );
@@ -194,7 +194,7 @@ CREATE TABLE IF NOT EXISTS master_data.industry (
 -- Table: master_data.job_role
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS master_data.job_role (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     industry_id UUID NOT NULL,
     role_code VARCHAR(50) NOT NULL,
     role_title VARCHAR(100) NOT NULL,
@@ -203,8 +203,8 @@ CREATE TABLE IF NOT EXISTS master_data.job_role (
     sort_order INTEGER DEFAULT 100 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_job_role PRIMARY KEY (id),
     CONSTRAINT uq_job_role_role_code UNIQUE (role_code)
 );
@@ -213,7 +213,7 @@ CREATE TABLE IF NOT EXISTS master_data.job_role (
 -- Table: master_data.skill
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS master_data.skill (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     skill_code VARCHAR(50) NOT NULL,
     skill_name VARCHAR(100) NOT NULL,
     category VARCHAR(50) NOT NULL,
@@ -221,8 +221,8 @@ CREATE TABLE IF NOT EXISTS master_data.skill (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_skill PRIMARY KEY (id),
     CONSTRAINT uq_skill_skill_code UNIQUE (skill_code)
 );
@@ -231,7 +231,7 @@ CREATE TABLE IF NOT EXISTS master_data.skill (
 -- Table: master_data.qualification
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS master_data.qualification (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     qualification_code VARCHAR(50) NOT NULL,
     qualification_name VARCHAR(150) NOT NULL,
     qualification_level VARCHAR(30) NOT NULL,
@@ -240,8 +240,8 @@ CREATE TABLE IF NOT EXISTS master_data.qualification (
     sort_order INTEGER DEFAULT 100 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_qualification PRIMARY KEY (id),
     CONSTRAINT uq_qualification_qualification_code UNIQUE (qualification_code)
 );
@@ -250,14 +250,14 @@ CREATE TABLE IF NOT EXISTS master_data.qualification (
 -- Table: master_data.ui_translation_key
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS master_data.ui_translation_key (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     translation_key VARCHAR(150) NOT NULL,
     category VARCHAR(50) NOT NULL,
     description VARCHAR(500),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_ui_translation_key PRIMARY KEY (id),
     CONSTRAINT uq_ui_translation_key_translation_key UNIQUE (translation_key)
 );
@@ -266,15 +266,15 @@ CREATE TABLE IF NOT EXISTS master_data.ui_translation_key (
 -- Table: master_data.ui_translation
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS master_data.ui_translation (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     key_id UUID NOT NULL,
-    language_code CHAR(2) NOT NULL,
+    language_code VARCHAR(10) NOT NULL,
     translated_text TEXT NOT NULL,
     is_reviewed BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_ui_translation PRIMARY KEY (id)
 );
 
@@ -282,17 +282,17 @@ CREATE TABLE IF NOT EXISTS master_data.ui_translation (
 -- Table: master_data.enum_lookup
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS master_data.enum_lookup (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     enum_domain VARCHAR(64) NOT NULL,
     enum_code VARCHAR(64) NOT NULL,
     display_name VARCHAR(150) NOT NULL,
-    language_code CHAR(5) DEFAULT 'en_US' NOT NULL,
+    language_code VARCHAR(10) DEFAULT 'en_US' NOT NULL,
     sort_order INTEGER DEFAULT 1 NOT NULL,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_enum_lookup PRIMARY KEY (id)
 );
 
@@ -307,7 +307,7 @@ CREATE TABLE IF NOT EXISTS master_data.enum_lookup (
 -- Table: identity.user_account
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS identity.user_account (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     email VARCHAR(254) NOT NULL,
     phone_country_code VARCHAR(5) NOT NULL,
     phone_number VARCHAR(20) NOT NULL,
@@ -320,9 +320,9 @@ CREATE TABLE IF NOT EXISTS identity.user_account (
     locked_until TIMESTAMPTZ,
     last_login_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid,
     deleted_at TIMESTAMPTZ,
     CONSTRAINT pk_user_account PRIMARY KEY (id),
     CONSTRAINT uq_user_account_email UNIQUE (email),
@@ -334,7 +334,7 @@ CREATE TABLE IF NOT EXISTS identity.user_account (
 -- Table: identity.user_credential
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS identity.user_credential (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     user_id UUID NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     password_salt VARCHAR(64) NOT NULL,
@@ -343,8 +343,8 @@ CREATE TABLE IF NOT EXISTS identity.user_credential (
     must_change_password BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_user_credential PRIMARY KEY (id),
     CONSTRAINT uq_user_credential_user_id UNIQUE (user_id)
 );
@@ -353,7 +353,7 @@ CREATE TABLE IF NOT EXISTS identity.user_credential (
 -- Table: identity.role
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS identity.role (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     role_code VARCHAR(50) NOT NULL,
     role_name VARCHAR(100) NOT NULL,
     role_scope VARCHAR(30) NOT NULL,
@@ -362,8 +362,8 @@ CREATE TABLE IF NOT EXISTS identity.role (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_role PRIMARY KEY (id),
     CONSTRAINT uq_role_role_code UNIQUE (role_code)
 );
@@ -372,7 +372,7 @@ CREATE TABLE IF NOT EXISTS identity.role (
 -- Table: identity.user_role
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS identity.user_role (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     user_id UUID NOT NULL,
     role_id UUID NOT NULL,
     granted_by UUID NOT NULL,
@@ -380,9 +380,9 @@ CREATE TABLE IF NOT EXISTS identity.user_role (
     expires_at TIMESTAMPTZ,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_user_role PRIMARY KEY (id)
 );
 
@@ -390,7 +390,7 @@ CREATE TABLE IF NOT EXISTS identity.user_role (
 -- Table: identity.user_active_session
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS identity.user_active_session (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     user_id UUID NOT NULL,
     session_token_hash CHAR(64) NOT NULL,
     device_id VARCHAR(100) NOT NULL,
@@ -403,9 +403,9 @@ CREATE TABLE IF NOT EXISTS identity.user_active_session (
     revoked_at TIMESTAMPTZ,
     revocation_reason VARCHAR(100),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_user_active_session PRIMARY KEY (id),
     CONSTRAINT uq_user_active_session_session_token_hash UNIQUE (session_token_hash)
 );
@@ -414,7 +414,7 @@ CREATE TABLE IF NOT EXISTS identity.user_active_session (
 -- Table: identity.service_api_key
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS identity.service_api_key (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     user_id UUID NOT NULL,
     key_prefix VARCHAR(16) NOT NULL,
     key_hash CHAR(64) NOT NULL,
@@ -426,9 +426,9 @@ CREATE TABLE IF NOT EXISTS identity.service_api_key (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     revoked_at TIMESTAMPTZ,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_service_api_key PRIMARY KEY (id),
     CONSTRAINT uq_service_api_key_key_prefix UNIQUE (key_prefix),
     CONSTRAINT uq_service_api_key_key_hash UNIQUE (key_hash)
@@ -445,15 +445,15 @@ CREATE TABLE IF NOT EXISTS identity.service_api_key (
 -- Table: organisation.account
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS organisation.account (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     account_name VARCHAR(150) NOT NULL,
     account_type VARCHAR(30) NOT NULL,
     account_status VARCHAR(20) DEFAULT 'ACTIVE' NOT NULL,
     billing_currency_code CHAR(3) DEFAULT 'USD' NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid,
     deleted_at TIMESTAMPTZ,
     CONSTRAINT pk_account PRIMARY KEY (id),
     CONSTRAINT chk_account_account_status CHECK (account_status IN ('TRIAL_ACTIVE', 'PAID_ACTIVE', 'DELINQUENT_GRACE', 'SUSPENDED_NON_PAYMENT', 'TERMINATED_OFFBOARDED'))
@@ -463,7 +463,7 @@ CREATE TABLE IF NOT EXISTS organisation.account (
 -- Table: organisation.organisation
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS organisation.organisation (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     account_id UUID NOT NULL,
     legal_name VARCHAR(200) NOT NULL,
     trade_name VARCHAR(150),
@@ -474,9 +474,9 @@ CREATE TABLE IF NOT EXISTS organisation.organisation (
     verification_status VARCHAR(30) DEFAULT 'UNVERIFIED' NOT NULL,
     logo_url VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid,
     deleted_at TIMESTAMPTZ,
     CONSTRAINT pk_organisation PRIMARY KEY (id),
     CONSTRAINT uq_organisation_company_registration_number UNIQUE (company_registration_number)
@@ -486,7 +486,7 @@ CREATE TABLE IF NOT EXISTS organisation.organisation (
 -- Table: organisation.organisation_location
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS organisation.organisation_location (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     organisation_id UUID NOT NULL,
     location_type VARCHAR(30) NOT NULL,
     address_line1 VARCHAR(255) NOT NULL,
@@ -499,8 +499,8 @@ CREATE TABLE IF NOT EXISTS organisation.organisation_location (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     deleted_at TIMESTAMPTZ,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_organisation_location PRIMARY KEY (id)
 );
 
@@ -508,7 +508,7 @@ CREATE TABLE IF NOT EXISTS organisation.organisation_location (
 -- Table: organisation.organisation_tax_identifier
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS organisation.organisation_tax_identifier (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     organisation_id UUID NOT NULL,
     country_id UUID NOT NULL,
     tax_id_type VARCHAR(30) NOT NULL,
@@ -518,8 +518,8 @@ CREATE TABLE IF NOT EXISTS organisation.organisation_tax_identifier (
     verified_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_organisation_tax_identifier PRIMARY KEY (id),
     CONSTRAINT uq_organisation_tax_identifier_tax_id_blind_index UNIQUE (tax_id_blind_index)
 );
@@ -528,7 +528,7 @@ CREATE TABLE IF NOT EXISTS organisation.organisation_tax_identifier (
 -- Table: organisation.organisation_verification
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS organisation.organisation_verification (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     organisation_id UUID NOT NULL,
     verification_provider VARCHAR(50) NOT NULL,
     reference_number VARCHAR(100) NOT NULL,
@@ -538,9 +538,9 @@ CREATE TABLE IF NOT EXISTS organisation.organisation_verification (
     verified_by UUID,
     verified_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_organisation_verification PRIMARY KEY (id),
     CONSTRAINT uq_organisation_verification_reference_number UNIQUE (reference_number)
 );
@@ -549,16 +549,16 @@ CREATE TABLE IF NOT EXISTS organisation.organisation_verification (
 -- Table: organisation.recruiter_seat_assignment
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS organisation.recruiter_seat_assignment (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     organisation_id UUID NOT NULL,
     user_id UUID NOT NULL,
     seat_status VARCHAR(20) DEFAULT 'ACTIVE' NOT NULL,
     assigned_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     revoked_at TIMESTAMPTZ,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_recruiter_seat_assignment PRIMARY KEY (id)
 );
 
@@ -566,15 +566,15 @@ CREATE TABLE IF NOT EXISTS organisation.recruiter_seat_assignment (
 -- Table: organisation.organisation_hierarchy
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS organisation.organisation_hierarchy (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     parent_organisation_id UUID NOT NULL,
     child_organisation_id UUID NOT NULL,
     relationship_type VARCHAR(30) NOT NULL,
     effective_date DATE DEFAULT CURRENT_DATE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_organisation_hierarchy PRIMARY KEY (id)
 );
 
@@ -589,7 +589,7 @@ CREATE TABLE IF NOT EXISTS organisation.organisation_hierarchy (
 -- Table: candidate.candidate_profile
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS candidate.candidate_profile (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     user_id UUID NOT NULL,
     first_name VARCHAR(75) NOT NULL,
     middle_name VARCHAR(75),
@@ -608,9 +608,9 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_profile (
     profile_completion_percentage NUMERIC(5,2) DEFAULT 0.00 NOT NULL,
     is_profile_searchable BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid,
     deleted_at TIMESTAMPTZ,
     CONSTRAINT pk_candidate_profile PRIMARY KEY (id),
     CONSTRAINT uq_candidate_profile_user_id UNIQUE (user_id)
@@ -620,7 +620,7 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_profile (
 -- Table: candidate.candidate_education
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS candidate.candidate_education (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     candidate_id UUID NOT NULL,
     qualification_id UUID NOT NULL,
     institution_name VARCHAR(200) NOT NULL,
@@ -633,8 +633,8 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_education (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     grade_percentage NUMERIC(5,2),
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_candidate_education PRIMARY KEY (id),
     CONSTRAINT chk_candidate_education_rule_1 CHECK (end_date IS NULL OR start_date IS NULL OR end_date >= start_date),
     CONSTRAINT chk_candidate_education_rule_2 CHECK (grade_percentage IS NULL OR (grade_percentage >= 0.00 AND grade_percentage <= 100.00))
@@ -644,7 +644,7 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_education (
 -- Table: candidate.candidate_work_experience
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS candidate.candidate_work_experience (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     candidate_id UUID NOT NULL,
     company_name VARCHAR(150) NOT NULL,
     job_title VARCHAR(100) NOT NULL,
@@ -656,8 +656,8 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_work_experience (
     description TEXT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_candidate_work_experience PRIMARY KEY (id),
     CONSTRAINT chk_candidate_work_experience_rule_1 CHECK (end_date IS NULL OR start_date IS NULL OR end_date >= start_date)
 );
@@ -666,7 +666,7 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_work_experience (
 -- Table: candidate.candidate_skill
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS candidate.candidate_skill (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     candidate_id UUID NOT NULL,
     skill_id UUID NOT NULL,
     proficiency_level VARCHAR(20) DEFAULT 'INTERMEDIATE' NOT NULL,
@@ -675,8 +675,8 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_skill (
     last_used_year SMALLINT DEFAULT EXTRACT(YEAR FROM CURRENT_DATE) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_candidate_skill PRIMARY KEY (id)
 );
 
@@ -684,7 +684,7 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_skill (
 -- Table: candidate.candidate_project
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS candidate.candidate_project (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     candidate_id UUID NOT NULL,
     project_title VARCHAR(150) NOT NULL,
     project_role VARCHAR(100) NOT NULL,
@@ -695,8 +695,8 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_project (
     outcome VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_candidate_project PRIMARY KEY (id)
 );
 
@@ -704,7 +704,7 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_project (
 -- Table: candidate.candidate_resume
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS candidate.candidate_resume (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     candidate_id UUID NOT NULL,
     resume_title VARCHAR(150) NOT NULL,
     storage_path VARCHAR(500) NOT NULL,
@@ -716,8 +716,8 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_resume (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     deleted_at TIMESTAMPTZ,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_candidate_resume PRIMARY KEY (id)
 );
 
@@ -725,7 +725,7 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_resume (
 -- Table: candidate.candidate_preference
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS candidate.candidate_preference (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     candidate_id UUID NOT NULL,
     preferred_job_type VARCHAR(30) DEFAULT 'PERMANENT_FULL_TIME' NOT NULL,
     preferred_work_mode VARCHAR(30) DEFAULT 'HYBRID' NOT NULL,
@@ -733,8 +733,8 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_preference (
     preferred_locations_json TEXT DEFAULT '[]' NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_candidate_preference PRIMARY KEY (id),
     CONSTRAINT uq_candidate_preference_candidate_id UNIQUE (candidate_id)
 );
@@ -743,15 +743,15 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_preference (
 -- Table: candidate.candidate_block_list
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS candidate.candidate_block_list (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     candidate_id UUID NOT NULL,
     blocked_organisation_id UUID,
     blocked_recruiter_user_id UUID,
     block_reason VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_candidate_block_list PRIMARY KEY (id)
 );
 
@@ -759,17 +759,17 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_block_list (
 -- Table: candidate.candidate_language
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS candidate.candidate_language (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     candidate_id UUID NOT NULL,
-    language_code CHAR(2) NOT NULL,
+    language_code VARCHAR(10) NOT NULL,
     proficiency_level VARCHAR(20) DEFAULT 'PROFICIENT' NOT NULL,
     can_read BOOLEAN DEFAULT TRUE NOT NULL,
     can_write BOOLEAN DEFAULT TRUE NOT NULL,
     can_speak BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_candidate_language PRIMARY KEY (id)
 );
 
@@ -784,7 +784,7 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_language (
 -- Table: recruitment.job_requisition
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS recruitment.job_requisition (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     organisation_id UUID NOT NULL,
     posted_by_user_id UUID NOT NULL,
     job_role_id UUID NOT NULL,
@@ -806,11 +806,12 @@ CREATE TABLE IF NOT EXISTS recruitment.job_requisition (
     application_deadline DATE,
     published_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid,
     deleted_at TIMESTAMPTZ,
     CONSTRAINT pk_job_requisition PRIMARY KEY (id),
+    CONSTRAINT chk_job_requisition_publish_status CHECK (publish_status IN ('DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'PUBLISHED', 'SOURCING_ACTIVE', 'INTERVIEWING', 'OFFER_EXTENDED', 'FILLED_CLOSED', 'CANCELLED_VOID', 'ON_HOLD')),
     CONSTRAINT chk_job_requisition_rule_1 CHECK (min_salary_amount IS NULL OR min_salary_amount >= 0.00),
     CONSTRAINT chk_job_requisition_rule_2 CHECK (max_salary_amount IS NULL OR max_salary_amount >= 0.00),
     CONSTRAINT chk_job_requisition_rule_3 CHECK (max_salary_amount IS NULL OR min_salary_amount IS NULL OR max_salary_amount >= min_salary_amount),
@@ -821,15 +822,15 @@ CREATE TABLE IF NOT EXISTS recruitment.job_requisition (
 -- Table: recruitment.job_requisition_skill
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS recruitment.job_requisition_skill (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     requisition_id UUID NOT NULL,
     skill_id UUID NOT NULL,
     requirement_type VARCHAR(20) DEFAULT 'MANDATORY' NOT NULL,
     min_experience_months INTEGER DEFAULT 0 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_job_requisition_skill PRIMARY KEY (id)
 );
 
@@ -837,7 +838,7 @@ CREATE TABLE IF NOT EXISTS recruitment.job_requisition_skill (
 -- Table: recruitment.job_questionnaire
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS recruitment.job_questionnaire (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     requisition_id UUID NOT NULL,
     questionnaire_title VARCHAR(150) NOT NULL,
     passing_score_percentage NUMERIC(5,2) DEFAULT 70.00 NOT NULL,
@@ -845,8 +846,8 @@ CREATE TABLE IF NOT EXISTS recruitment.job_questionnaire (
     version_number SMALLINT DEFAULT 1 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_job_questionnaire PRIMARY KEY (id),
     CONSTRAINT uq_job_questionnaire_requisition_id UNIQUE (requisition_id)
 );
@@ -855,7 +856,7 @@ CREATE TABLE IF NOT EXISTS recruitment.job_questionnaire (
 -- Table: recruitment.questionnaire_question
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS recruitment.questionnaire_question (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     questionnaire_id UUID NOT NULL,
     question_text VARCHAR(500) NOT NULL,
     question_type VARCHAR(30) NOT NULL,
@@ -863,9 +864,9 @@ CREATE TABLE IF NOT EXISTS recruitment.questionnaire_question (
     is_disqualifying BOOLEAN DEFAULT FALSE NOT NULL,
     sort_order INTEGER DEFAULT 1 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_questionnaire_question PRIMARY KEY (id)
 );
 
@@ -873,16 +874,16 @@ CREATE TABLE IF NOT EXISTS recruitment.questionnaire_question (
 -- Table: recruitment.question_option
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS recruitment.question_option (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     question_id UUID NOT NULL,
     option_text VARCHAR(255) NOT NULL,
     is_correct BOOLEAN DEFAULT FALSE NOT NULL,
     score_value INTEGER DEFAULT 0 NOT NULL,
     sort_order INTEGER DEFAULT 1 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_question_option PRIMARY KEY (id)
 );
 
@@ -897,7 +898,7 @@ CREATE TABLE IF NOT EXISTS recruitment.question_option (
 -- Table: application.job_application
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS application.job_application (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     requisition_id UUID NOT NULL,
     candidate_id UUID NOT NULL,
     resume_id UUID NOT NULL,
@@ -912,8 +913,8 @@ CREATE TABLE IF NOT EXISTS application.job_application (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     deleted_at TIMESTAMPTZ,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_job_application PRIMARY KEY (id, applied_at),
     CONSTRAINT chk_job_application_application_status CHECK (application_status IN ('SUBMITTED', 'SCREENING_PASSED', 'SCREENING_FAILED', 'SHORTLISTED', 'INTERVIEW_SCHEDULED', 'INTERVIEWED', 'OFFER_EXTENDED', 'OFFER_ACCEPTED', 'OFFER_DECLINED', 'JOINED_HIRED', 'REJECTED', 'WITHDRAWN_CANDIDATE'))
 ) PARTITION BY RANGE (applied_at);
@@ -937,16 +938,16 @@ CREATE TABLE IF NOT EXISTS application.job_application_default PARTITION OF appl
 -- Table: application.application_question_answer
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS application.application_question_answer (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     application_id UUID NOT NULL,
     question_id UUID NOT NULL,
     selected_option_id UUID,
     free_text_answer TEXT,
     score_awarded INTEGER DEFAULT 0 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_application_question_answer PRIMARY KEY (id)
 );
 
@@ -954,7 +955,7 @@ CREATE TABLE IF NOT EXISTS application.application_question_answer (
 -- Table: application.application_stage_history
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS application.application_stage_history (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     application_id UUID NOT NULL,
     from_stage VARCHAR(30) NOT NULL,
     to_stage VARCHAR(30) NOT NULL,
@@ -962,7 +963,7 @@ CREATE TABLE IF NOT EXISTS application.application_stage_history (
     stage_notes VARCHAR(500),
     transition_timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_application_stage_history PRIMARY KEY (id, created_at)
 ) PARTITION BY RANGE (created_at);
 
@@ -985,7 +986,7 @@ CREATE TABLE IF NOT EXISTS application.application_stage_history_default PARTITI
 -- Table: application.job_interview
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS application.job_interview (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     application_id UUID NOT NULL,
     interview_round SMALLINT DEFAULT 1 NOT NULL,
     interview_format VARCHAR(30) NOT NULL,
@@ -996,8 +997,8 @@ CREATE TABLE IF NOT EXISTS application.job_interview (
     interview_status VARCHAR(30) DEFAULT 'SCHEDULED' NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_job_interview PRIMARY KEY (id)
 );
 
@@ -1005,7 +1006,7 @@ CREATE TABLE IF NOT EXISTS application.job_interview (
 -- Table: application.interview_feedback
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS application.interview_feedback (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     interview_id UUID NOT NULL,
     interviewer_user_id UUID NOT NULL,
     technical_score NUMERIC(3,1) NOT NULL,
@@ -1017,9 +1018,9 @@ CREATE TABLE IF NOT EXISTS application.interview_feedback (
     feedback_notes TEXT,
     submitted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_interview_feedback PRIMARY KEY (id)
 );
 
@@ -1027,7 +1028,7 @@ CREATE TABLE IF NOT EXISTS application.interview_feedback (
 -- Table: application.job_offer
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS application.job_offer (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     application_id UUID NOT NULL,
     offered_salary_amount NUMERIC(12,2) NOT NULL,
     salary_currency_code CHAR(3) DEFAULT 'USD' NOT NULL,
@@ -1036,10 +1037,10 @@ CREATE TABLE IF NOT EXISTS application.job_offer (
     offer_letter_storage_path VARCHAR(500) NOT NULL,
     offer_status VARCHAR(30) DEFAULT 'EXTENDED' NOT NULL,
     responded_at TIMESTAMPTZ,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_job_offer PRIMARY KEY (id),
     CONSTRAINT uq_job_offer_application_id UNIQUE (application_id)
 );
@@ -1055,7 +1056,7 @@ CREATE TABLE IF NOT EXISTS application.job_offer (
 -- Table: sourcing.consultant_authorization
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sourcing.consultant_authorization (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     requisition_id UUID NOT NULL,
     consultant_user_id UUID NOT NULL,
     commission_rate_percentage NUMERIC(5,2) DEFAULT 8.33 NOT NULL,
@@ -1065,8 +1066,8 @@ CREATE TABLE IF NOT EXISTS sourcing.consultant_authorization (
     expires_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_consultant_authorization PRIMARY KEY (id),
     CONSTRAINT chk_consultant_authorization_authorization_status CHECK (authorization_status IN ('INVITED_PENDING', 'ACCEPTED_ACTIVE', 'EXPIRED_TIMEOUT', 'REVOKED_EMPLOYER', 'TERMINATED_HIRE')),
     CONSTRAINT chk_consultant_authorization_rule_1 CHECK (commission_rate_percentage >= 0.00 AND commission_rate_percentage <= 100.00)
@@ -1076,7 +1077,7 @@ CREATE TABLE IF NOT EXISTS sourcing.consultant_authorization (
 -- Table: sourcing.candidate_nomination
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sourcing.candidate_nomination (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     authorization_id UUID NOT NULL,
     candidate_id UUID NOT NULL,
     nomination_status VARCHAR(30) DEFAULT 'NOMINATED' NOT NULL,
@@ -1085,8 +1086,8 @@ CREATE TABLE IF NOT EXISTS sourcing.candidate_nomination (
     reviewed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_candidate_nomination PRIMARY KEY (id),
     CONSTRAINT chk_candidate_nomination_nomination_status CHECK (nomination_status IN ('NOMINATED_PENDING', 'CLIENT_SHORTLISTED', 'CLIENT_REJECTED', 'HIRED_COMMISSION_EARNED', 'WITHDRAWN_CANDIDATE'))
 );
@@ -1095,7 +1096,7 @@ CREATE TABLE IF NOT EXISTS sourcing.candidate_nomination (
 -- Table: sourcing.outreach_campaign
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sourcing.outreach_campaign (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     organisation_id UUID NOT NULL,
     created_by_user_id UUID NOT NULL,
     campaign_name VARCHAR(150) NOT NULL,
@@ -1105,8 +1106,8 @@ CREATE TABLE IF NOT EXISTS sourcing.outreach_campaign (
     credits_deducted INTEGER DEFAULT 0 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_outreach_campaign PRIMARY KEY (id)
 );
 
@@ -1114,7 +1115,7 @@ CREATE TABLE IF NOT EXISTS sourcing.outreach_campaign (
 -- Table: sourcing.outreach_recipient
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS sourcing.outreach_recipient (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     campaign_id UUID NOT NULL,
     candidate_id UUID NOT NULL,
     delivery_status VARCHAR(20) DEFAULT 'QUEUED' NOT NULL,
@@ -1124,9 +1125,9 @@ CREATE TABLE IF NOT EXISTS sourcing.outreach_recipient (
     responded_at TIMESTAMPTZ,
     error_message VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_outreach_recipient PRIMARY KEY (id)
 );
 
@@ -1141,7 +1142,7 @@ CREATE TABLE IF NOT EXISTS sourcing.outreach_recipient (
 -- Table: gig.gig_worker_profile
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gig.gig_worker_profile (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     user_id UUID NOT NULL,
     professional_title VARCHAR(150) NOT NULL,
     bio_summary TEXT NOT NULL,
@@ -1155,8 +1156,8 @@ CREATE TABLE IF NOT EXISTS gig.gig_worker_profile (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     deleted_at TIMESTAMPTZ,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_gig_worker_profile PRIMARY KEY (id),
     CONSTRAINT uq_gig_worker_profile_user_id UNIQUE (user_id)
 );
@@ -1165,7 +1166,7 @@ CREATE TABLE IF NOT EXISTS gig.gig_worker_profile (
 -- Table: gig.gig_worker_service
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gig.gig_worker_service (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     worker_id UUID NOT NULL,
     service_title VARCHAR(150) NOT NULL,
     service_category_id UUID NOT NULL,
@@ -1176,8 +1177,8 @@ CREATE TABLE IF NOT EXISTS gig.gig_worker_service (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_gig_worker_service PRIMARY KEY (id)
 );
 
@@ -1185,7 +1186,7 @@ CREATE TABLE IF NOT EXISTS gig.gig_worker_service (
 -- Table: gig.gig_worker_availability
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gig.gig_worker_availability (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     worker_id UUID NOT NULL,
     available_date DATE NOT NULL,
     start_time TIME NOT NULL,
@@ -1194,8 +1195,8 @@ CREATE TABLE IF NOT EXISTS gig.gig_worker_availability (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     availability_window TSTZRANGE NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_gig_worker_availability PRIMARY KEY (id)
 );
 
@@ -1203,7 +1204,7 @@ CREATE TABLE IF NOT EXISTS gig.gig_worker_availability (
 -- Table: gig.gig_request
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gig.gig_request (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     organisation_id UUID NOT NULL,
     posted_by_user_id UUID NOT NULL,
     title VARCHAR(150) NOT NULL,
@@ -1218,8 +1219,8 @@ CREATE TABLE IF NOT EXISTS gig.gig_request (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     deleted_at TIMESTAMPTZ,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_gig_request PRIMARY KEY (id),
     CONSTRAINT chk_gig_request_request_status CHECK (request_status IN ('DRAFT', 'OPEN_BIDDING', 'PROPOSALS_UNDER_REVIEW', 'MATCH_CONFIRMED', 'WORK_IN_PROGRESS', 'COMPLETED_DELIVERED', 'DISPUTED_ARBITRATION', 'CANCELLED_UNFILLED'))
 );
@@ -1228,7 +1229,7 @@ CREATE TABLE IF NOT EXISTS gig.gig_request (
 -- Table: gig.gig_proposal
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gig.gig_proposal (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     request_id UUID NOT NULL,
     worker_id UUID NOT NULL,
     cover_letter TEXT NOT NULL,
@@ -1240,8 +1241,8 @@ CREATE TABLE IF NOT EXISTS gig.gig_proposal (
     reviewed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_gig_proposal PRIMARY KEY (id),
     CONSTRAINT chk_gig_proposal_proposal_status CHECK (proposal_status IN ('SUBMITTED', 'UNDER_CLIENT_REVIEW', 'ACCEPTED_AWARDED', 'DECLINED_REJECTED', 'WITHDRAWN_BY_WORKER', 'EXPIRED'))
 );
@@ -1250,7 +1251,7 @@ CREATE TABLE IF NOT EXISTS gig.gig_proposal (
 -- Table: gig.gig_contract
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gig.gig_contract (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     request_id UUID NOT NULL,
     proposal_id UUID NOT NULL,
     worker_id UUID NOT NULL,
@@ -1265,8 +1266,8 @@ CREATE TABLE IF NOT EXISTS gig.gig_contract (
     signed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     completed_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_gig_contract PRIMARY KEY (id),
     CONSTRAINT uq_gig_contract_proposal_id UNIQUE (proposal_id),
     CONSTRAINT chk_gig_contract_contract_status CHECK (contract_status IN ('PENDING_ESCROW', 'ACTIVE_IN_PROGRESS', 'PAUSED_REVISION', 'PENDING_ACCEPTANCE', 'DISPUTED', 'SETTLED_CLOSED', 'TERMINATED_MUTUAL', 'CANCELLED_PRE_START')),
@@ -1277,7 +1278,7 @@ CREATE TABLE IF NOT EXISTS gig.gig_contract (
 -- Table: gig.gig_milestone
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gig.gig_milestone (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     contract_id UUID NOT NULL,
     milestone_index SMALLINT DEFAULT 1 NOT NULL,
     milestone_title VARCHAR(150) NOT NULL,
@@ -1291,8 +1292,8 @@ CREATE TABLE IF NOT EXISTS gig.gig_milestone (
     approved_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_gig_milestone PRIMARY KEY (id),
     CONSTRAINT chk_gig_milestone_milestone_status CHECK (milestone_status IN ('PENDING_FUNDING', 'FUNDED_ESCROW_LOCKED', 'IN_PROGRESS', 'SUBMITTED_FOR_REVIEW', 'REVISION_REQUESTED', 'APPROVED_RELEASED', 'DISPUTED_FROZEN', 'REFUNDED_TO_CLIENT')),
     CONSTRAINT chk_gig_milestone_rule_1 CHECK (milestone_amount >= 0.00)
@@ -1302,7 +1303,7 @@ CREATE TABLE IF NOT EXISTS gig.gig_milestone (
 -- Table: gig.gig_rating
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gig.gig_rating (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     contract_id UUID NOT NULL,
     rater_user_id UUID NOT NULL,
     rated_user_id UUID NOT NULL,
@@ -1313,9 +1314,9 @@ CREATE TABLE IF NOT EXISTS gig.gig_rating (
     timeliness_score NUMERIC(3,2) NOT NULL,
     submitted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_gig_rating PRIMARY KEY (id),
     CONSTRAINT chk_gig_rating_rule_1 CHECK (rating_score >= 1.0 AND rating_score <= 5.0)
 );
@@ -1324,15 +1325,15 @@ CREATE TABLE IF NOT EXISTS gig.gig_rating (
 -- Table: gig.client_gig_worker_preference
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS gig.client_gig_worker_preference (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     organisation_id UUID NOT NULL,
     worker_id UUID NOT NULL,
     preference_type VARCHAR(20) NOT NULL,
     notes VARCHAR(500),
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_client_gig_worker_preference PRIMARY KEY (id)
 );
 
@@ -1347,7 +1348,7 @@ CREATE TABLE IF NOT EXISTS gig.client_gig_worker_preference (
 -- Table: licensing.subscription_plan
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS licensing.subscription_plan (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     plan_code VARCHAR(50) NOT NULL,
     plan_name VARCHAR(100) NOT NULL,
     tier_level VARCHAR(20) NOT NULL,
@@ -1361,8 +1362,8 @@ CREATE TABLE IF NOT EXISTS licensing.subscription_plan (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_subscription_plan PRIMARY KEY (id),
     CONSTRAINT uq_subscription_plan_plan_code UNIQUE (plan_code)
 );
@@ -1371,7 +1372,7 @@ CREATE TABLE IF NOT EXISTS licensing.subscription_plan (
 -- Table: licensing.subscription_licence
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS licensing.subscription_licence (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     account_id UUID NOT NULL,
     plan_id UUID NOT NULL,
     licence_status VARCHAR(20) DEFAULT 'ACTIVE' NOT NULL,
@@ -1380,8 +1381,8 @@ CREATE TABLE IF NOT EXISTS licensing.subscription_licence (
     auto_renew BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_subscription_licence PRIMARY KEY (id),
     CONSTRAINT chk_subscription_licence_licence_status CHECK (licence_status IN ('PENDING_PROVISIONING', 'ACTIVE_COMMISSIONED', 'RENEWAL_DUE', 'GRACE_PERIOD', 'SUSPENDED_NON_PAYMENT', 'TERMINATED_EXPIRED'))
 );
@@ -1390,7 +1391,7 @@ CREATE TABLE IF NOT EXISTS licensing.subscription_licence (
 -- Table: licensing.licence_entitlement_usage
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS licensing.licence_entitlement_usage (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     licence_id UUID NOT NULL,
     entitlement_type VARCHAR(40) NOT NULL,
     billing_period_start DATE NOT NULL,
@@ -1399,8 +1400,8 @@ CREATE TABLE IF NOT EXISTS licensing.licence_entitlement_usage (
     consumed_quota INTEGER DEFAULT 0 NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_licence_entitlement_usage PRIMARY KEY (id)
 );
 
@@ -1415,7 +1416,7 @@ CREATE TABLE IF NOT EXISTS licensing.licence_entitlement_usage (
 -- Table: billing.wallet_account
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.wallet_account (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     account_id UUID NOT NULL,
     wallet_type VARCHAR(20) DEFAULT 'OPERATIONAL' NOT NULL,
     currency_code CHAR(3) DEFAULT 'USD' NOT NULL,
@@ -1424,8 +1425,8 @@ CREATE TABLE IF NOT EXISTS billing.wallet_account (
     is_locked BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_wallet_account PRIMARY KEY (id),
     CONSTRAINT uq_wallet_account_account_id UNIQUE (account_id),
     CONSTRAINT chk_wallet_account_rule_1 CHECK (current_balance >= 0.00),
@@ -1436,7 +1437,7 @@ CREATE TABLE IF NOT EXISTS billing.wallet_account (
 -- Table: billing.wallet_ledger
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.wallet_ledger (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     wallet_id UUID NOT NULL,
     transaction_group_id UUID NOT NULL,
     entry_type VARCHAR(10) NOT NULL,
@@ -1447,7 +1448,7 @@ CREATE TABLE IF NOT EXISTS billing.wallet_ledger (
     reference_entity_id UUID NOT NULL,
     notes VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_wallet_ledger PRIMARY KEY (id),
     CONSTRAINT chk_wallet_ledger_rule_1 CHECK (entry_type IN ('DEBIT', 'CREDIT')),
     CONSTRAINT chk_wallet_ledger_rule_2 CHECK (amount > 0.00)
@@ -1457,7 +1458,7 @@ CREATE TABLE IF NOT EXISTS billing.wallet_ledger (
 -- Table: billing.payment_order
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.payment_order (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     account_id UUID NOT NULL,
     order_type VARCHAR(30) NOT NULL,
     amount NUMERIC(12,2) NOT NULL,
@@ -1466,8 +1467,8 @@ CREATE TABLE IF NOT EXISTS billing.payment_order (
     payment_gateway_order_reference VARCHAR(100),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_payment_order PRIMARY KEY (id),
     CONSTRAINT uq_payment_order_payment_gateway_order_reference UNIQUE (payment_gateway_order_reference),
     CONSTRAINT chk_payment_order_order_status CHECK (order_status IN ('INITIALIZED', 'PROCESSING_PAYMENT', 'SETTLED_SUCCESS', 'PAYMENT_FAILED', 'EXPIRED_TIMEOUT', 'CANCELLED_USER'))
@@ -1477,7 +1478,7 @@ CREATE TABLE IF NOT EXISTS billing.payment_order (
 -- Table: billing.payment_transaction
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.payment_transaction (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     order_id UUID NOT NULL,
     wallet_id UUID,
     gateway_transaction_reference VARCHAR(100) NOT NULL,
@@ -1487,9 +1488,9 @@ CREATE TABLE IF NOT EXISTS billing.payment_transaction (
     transaction_status VARCHAR(20) NOT NULL,
     gateway_response_code VARCHAR(50),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_payment_transaction PRIMARY KEY (id),
     CONSTRAINT uq_payment_transaction_gateway_transaction_reference UNIQUE (gateway_transaction_reference)
 );
@@ -1498,7 +1499,7 @@ CREATE TABLE IF NOT EXISTS billing.payment_transaction (
 -- Table: billing.payment_gateway_event
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.payment_gateway_event (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     gateway_event_id VARCHAR(100) NOT NULL,
     event_type VARCHAR(50) NOT NULL,
     payload_json TEXT NOT NULL,
@@ -1507,9 +1508,9 @@ CREATE TABLE IF NOT EXISTS billing.payment_gateway_event (
     received_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     processed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_payment_gateway_event PRIMARY KEY (id),
     CONSTRAINT uq_payment_gateway_event_gateway_event_id UNIQUE (gateway_event_id)
 );
@@ -1518,7 +1519,7 @@ CREATE TABLE IF NOT EXISTS billing.payment_gateway_event (
 -- Table: billing.invoice
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.invoice (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     account_id UUID NOT NULL,
     order_id UUID NOT NULL,
     invoice_number VARCHAR(50) NOT NULL,
@@ -1532,8 +1533,8 @@ CREATE TABLE IF NOT EXISTS billing.invoice (
     pdf_storage_path VARCHAR(500) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_invoice PRIMARY KEY (id),
     CONSTRAINT uq_invoice_order_id UNIQUE (order_id),
     CONSTRAINT uq_invoice_invoice_number UNIQUE (invoice_number),
@@ -1548,7 +1549,7 @@ CREATE TABLE IF NOT EXISTS billing.invoice (
 -- Table: billing.invoice_item
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.invoice_item (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     invoice_id UUID NOT NULL,
     item_description VARCHAR(255) NOT NULL,
     quantity INTEGER DEFAULT 1 NOT NULL,
@@ -1557,9 +1558,9 @@ CREATE TABLE IF NOT EXISTS billing.invoice_item (
     currency_code CHAR(3) DEFAULT 'USD' NOT NULL,
     tax_rate_percentage NUMERIC(5,2) DEFAULT 18.00 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_invoice_item PRIMARY KEY (id),
     CONSTRAINT chk_invoice_item_rule_1 CHECK (quantity > 0),
     CONSTRAINT chk_invoice_item_rule_2 CHECK (unit_price >= 0.00),
@@ -1570,7 +1571,7 @@ CREATE TABLE IF NOT EXISTS billing.invoice_item (
 -- Table: billing.profile_download_history
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS billing.profile_download_history (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     recruiter_user_id UUID NOT NULL,
     organisation_id UUID NOT NULL,
     candidate_id UUID NOT NULL,
@@ -1579,7 +1580,7 @@ CREATE TABLE IF NOT EXISTS billing.profile_download_history (
     dpdp_consent_verified BOOLEAN DEFAULT TRUE NOT NULL,
     downloaded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_profile_download_history PRIMARY KEY (id)
 );
 
@@ -1594,14 +1595,14 @@ CREATE TABLE IF NOT EXISTS billing.profile_download_history (
 -- Table: engagement.candidate_saved_search
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS engagement.candidate_saved_search (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     recruiter_user_id UUID NOT NULL,
     search_name VARCHAR(100) NOT NULL,
     criteria_json TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_candidate_saved_search PRIMARY KEY (id)
 );
 
@@ -1609,7 +1610,7 @@ CREATE TABLE IF NOT EXISTS engagement.candidate_saved_search (
 -- Table: engagement.job_alert_subscription
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS engagement.job_alert_subscription (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     candidate_id UUID NOT NULL,
     alert_title VARCHAR(100) NOT NULL,
     filters_json TEXT NOT NULL,
@@ -1619,8 +1620,8 @@ CREATE TABLE IF NOT EXISTS engagement.job_alert_subscription (
     last_notified_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_job_alert_subscription PRIMARY KEY (id)
 );
 
@@ -1628,7 +1629,7 @@ CREATE TABLE IF NOT EXISTS engagement.job_alert_subscription (
 -- Table: engagement.notification_delivery
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS engagement.notification_delivery (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     user_id UUID NOT NULL,
     notification_category VARCHAR(40) NOT NULL,
     channel VARCHAR(20) NOT NULL,
@@ -1639,9 +1640,9 @@ CREATE TABLE IF NOT EXISTS engagement.notification_delivery (
     read_at TIMESTAMPTZ,
     dispatched_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_notification_delivery PRIMARY KEY (id, created_at)
 ) PARTITION BY RANGE (created_at);
 
@@ -1664,7 +1665,7 @@ CREATE TABLE IF NOT EXISTS engagement.notification_delivery_default PARTITION OF
 -- Table: engagement.message_thread
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS engagement.message_thread (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     recruiter_user_id UUID NOT NULL,
     candidate_id UUID NOT NULL,
     requisition_id UUID,
@@ -1672,9 +1673,9 @@ CREATE TABLE IF NOT EXISTS engagement.message_thread (
     thread_status VARCHAR(20) DEFAULT 'ACTIVE' NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     last_message_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_message_thread PRIMARY KEY (id),
     CONSTRAINT chk_message_thread_thread_status CHECK (thread_status IN ('ACTIVE_OPEN', 'ARCHIVED_USER', 'BLOCKED_BY_PARTY', 'FLAGGED_MODERATION', 'PURGED_RETENTION'))
 );
@@ -1683,15 +1684,15 @@ CREATE TABLE IF NOT EXISTS engagement.message_thread (
 -- Table: engagement.thread_message
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS engagement.thread_message (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     thread_id UUID NOT NULL,
     sender_user_id UUID NOT NULL,
     message_body TEXT NOT NULL,
     is_read BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_thread_message PRIMARY KEY (id)
 );
 
@@ -1699,16 +1700,16 @@ CREATE TABLE IF NOT EXISTS engagement.thread_message (
 -- Table: engagement.candidate_referral_link
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS engagement.candidate_referral_link (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     referrer_user_id UUID NOT NULL,
     unique_referral_token VARCHAR(64) NOT NULL,
     channel_medium VARCHAR(30) DEFAULT 'DIRECT' NOT NULL,
     click_count INTEGER DEFAULT 0 NOT NULL,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_candidate_referral_link PRIMARY KEY (id),
     CONSTRAINT uq_candidate_referral_link_unique_referral_token UNIQUE (unique_referral_token)
 );
@@ -1717,16 +1718,16 @@ CREATE TABLE IF NOT EXISTS engagement.candidate_referral_link (
 -- Table: engagement.referral_attribution_event
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS engagement.referral_attribution_event (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     referral_link_id UUID NOT NULL,
     referred_user_id UUID NOT NULL,
     milestone_type VARCHAR(30) NOT NULL,
     reward_points_awarded INTEGER DEFAULT 0 NOT NULL,
     attributed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_referral_attribution_event PRIMARY KEY (id)
 );
 
@@ -1734,7 +1735,7 @@ CREATE TABLE IF NOT EXISTS engagement.referral_attribution_event (
 -- Table: engagement.campus_placement_cohort
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS engagement.campus_placement_cohort (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     tpo_user_id UUID NOT NULL,
     institution_name VARCHAR(200) NOT NULL,
     degree_program VARCHAR(100) NOT NULL,
@@ -1742,8 +1743,8 @@ CREATE TABLE IF NOT EXISTS engagement.campus_placement_cohort (
     cohort_status VARCHAR(20) DEFAULT 'ACTIVE' NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_campus_placement_cohort PRIMARY KEY (id),
     CONSTRAINT chk_campus_placement_cohort_cohort_status CHECK (cohort_status IN ('PLANNING_DRAFT', 'REGISTRATION_OPEN', 'SCREENING_IN_PROGRESS', 'DRIVE_ACTIVE', 'OFFERS_CONCLUDED', 'ARCHIVED_COMPLETED'))
 );
@@ -1752,7 +1753,7 @@ CREATE TABLE IF NOT EXISTS engagement.campus_placement_cohort (
 -- Table: engagement.campus_student_member
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS engagement.campus_student_member (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     cohort_id UUID NOT NULL,
     candidate_id UUID NOT NULL,
     university_roll_number VARCHAR(50) NOT NULL,
@@ -1760,9 +1761,9 @@ CREATE TABLE IF NOT EXISTS engagement.campus_student_member (
     placement_status VARCHAR(20) DEFAULT 'UNPLACED' NOT NULL,
     added_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_campus_student_member PRIMARY KEY (id),
     CONSTRAINT uq_campus_student_member_university_roll_number UNIQUE (university_roll_number),
     CONSTRAINT chk_campus_student_member_placement_status CHECK (placement_status IN ('REGISTERED_UNVERIFIED', 'VERIFIED_ELIGIBLE', 'SHORTLISTED_DRIVE', 'OFFER_RECEIVED', 'PLACED_ACCEPTED', 'OPTED_OUT_INELIGIBLE'))
@@ -1779,7 +1780,7 @@ CREATE TABLE IF NOT EXISTS engagement.campus_student_member (
 -- Table: governance.dpdp_consent_record
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS governance.dpdp_consent_record (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     user_id UUID NOT NULL,
     consent_purpose VARCHAR(50) NOT NULL,
     consent_version VARCHAR(20) DEFAULT 'v2026.1' NOT NULL,
@@ -1789,9 +1790,9 @@ CREATE TABLE IF NOT EXISTS governance.dpdp_consent_record (
     revoked_at TIMESTAMPTZ,
     withdrawal_reason VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_dpdp_consent_record PRIMARY KEY (id),
     CONSTRAINT chk_dpdp_consent_record_status CHECK (status IN ('PENDING_OPT_IN', 'EXPLICIT_GRANTED', 'EXPLICIT_REVOKED', 'SYSTEM_SUPERSEDED', 'ANONYMIZED_EXPIRED'))
 );
@@ -1800,7 +1801,7 @@ CREATE TABLE IF NOT EXISTS governance.dpdp_consent_record (
 -- Table: governance.pii_encryption_key
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS governance.pii_encryption_key (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     user_id UUID NOT NULL,
     encrypted_dek TEXT NOT NULL,
     key_version SMALLINT DEFAULT 1 NOT NULL,
@@ -1808,9 +1809,9 @@ CREATE TABLE IF NOT EXISTS governance.pii_encryption_key (
     shredded_at TIMESTAMPTZ,
     shredded_by_user_id UUID,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_pii_encryption_key PRIMARY KEY (id),
     CONSTRAINT uq_pii_encryption_key_user_id UNIQUE (user_id)
 );
@@ -1819,7 +1820,7 @@ CREATE TABLE IF NOT EXISTS governance.pii_encryption_key (
 -- Table: governance.system_audit_event
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS governance.system_audit_event (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     actor_user_id UUID NOT NULL,
     actor_ip INET NOT NULL,
     event_type VARCHAR(50) NOT NULL,
@@ -1837,15 +1838,15 @@ CREATE TABLE IF NOT EXISTS governance.system_audit_event (
 -- Table: governance.data_retention_policy
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS governance.data_retention_policy (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     entity_type VARCHAR(50) NOT NULL,
     retention_duration_days INTEGER DEFAULT 365 NOT NULL,
     action_on_expiry VARCHAR(30) DEFAULT 'ANONYMIZE' NOT NULL,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
-    updated_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_data_retention_policy PRIMARY KEY (id),
     CONSTRAINT uq_data_retention_policy_entity_type UNIQUE (entity_type)
 );
@@ -1896,9 +1897,9 @@ CREATE TABLE IF NOT EXISTS analytics.dim_candidate (
     is_current BOOLEAN DEFAULT TRUE NOT NULL,
     salary_currency_code CHAR(3) DEFAULT 'INR' NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_dim_candidate PRIMARY KEY (candidate_key)
 );
 
@@ -1919,9 +1920,9 @@ CREATE TABLE IF NOT EXISTS analytics.dim_organisation (
     row_expiration_date DATE DEFAULT '9999-12-31' NOT NULL,
     is_current BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_dim_organisation PRIMARY KEY (organisation_key)
 );
 
@@ -1945,9 +1946,9 @@ CREATE TABLE IF NOT EXISTS analytics.dim_job_requisition (
     is_current BOOLEAN DEFAULT TRUE NOT NULL,
     salary_currency_code CHAR(3) DEFAULT 'INR' NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_dim_job_requisition PRIMARY KEY (requisition_key)
 );
 
@@ -1961,9 +1962,9 @@ CREATE TABLE IF NOT EXISTS analytics.dim_pipeline_stage (
     funnel_order SMALLINT NOT NULL,
     is_terminal_stage BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID NOT NULL,
+    updated_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_dim_pipeline_stage PRIMARY KEY (stage_key),
     CONSTRAINT uq_dim_pipeline_stage_stage_code UNIQUE (stage_code)
 );
@@ -1972,7 +1973,7 @@ CREATE TABLE IF NOT EXISTS analytics.dim_pipeline_stage (
 -- Table: analytics.fact_application_event
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS analytics.fact_application_event (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     date_key INTEGER NOT NULL,
     candidate_key INTEGER NOT NULL,
     organisation_key INTEGER NOT NULL,
@@ -1981,7 +1982,7 @@ CREATE TABLE IF NOT EXISTS analytics.fact_application_event (
     to_stage_key INTEGER NOT NULL,
     stage_duration_hours NUMERIC(8,2) DEFAULT 0.00 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_fact_application_event PRIMARY KEY (id)
 );
 
@@ -1989,14 +1990,14 @@ CREATE TABLE IF NOT EXISTS analytics.fact_application_event (
 -- Table: analytics.fact_profile_download
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS analytics.fact_profile_download (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     date_key INTEGER NOT NULL,
     organisation_key INTEGER NOT NULL,
     candidate_key INTEGER NOT NULL,
     recruiter_user_id UUID NOT NULL,
     credits_consumed INTEGER DEFAULT 1 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_fact_profile_download PRIMARY KEY (id)
 );
 
@@ -2004,7 +2005,7 @@ CREATE TABLE IF NOT EXISTS analytics.fact_profile_download (
 -- Table: analytics.fact_gig_contract
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS analytics.fact_gig_contract (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     date_key INTEGER NOT NULL,
     organisation_key INTEGER NOT NULL,
     worker_user_id UUID NOT NULL,
@@ -2012,7 +2013,7 @@ CREATE TABLE IF NOT EXISTS analytics.fact_gig_contract (
     total_value_usd NUMERIC(12,2) NOT NULL,
     final_performance_rating NUMERIC(3,2),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_fact_gig_contract PRIMARY KEY (id)
 );
 
@@ -2020,7 +2021,7 @@ CREATE TABLE IF NOT EXISTS analytics.fact_gig_contract (
 -- Table: analytics.fact_wallet_transaction
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS analytics.fact_wallet_transaction (
-    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    id UUID DEFAULT generate_uuid_v7() NOT NULL,
     date_key INTEGER NOT NULL,
     organisation_key INTEGER NOT NULL,
     transaction_category VARCHAR(30) NOT NULL,
@@ -2029,7 +2030,7 @@ CREATE TABLE IF NOT EXISTS analytics.fact_wallet_transaction (
     net_variance NUMERIC(14,2) DEFAULT 0.00 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     currency_code CHAR(3) DEFAULT 'INR' NOT NULL,
-    created_by UUID NOT NULL,
+    created_by UUID DEFAULT '00000000-0000-4000-8000-000000000000'::uuid NOT NULL,
     CONSTRAINT pk_fact_wallet_transaction PRIMARY KEY (id)
 );
 
@@ -2396,13 +2397,18 @@ CREATE INDEX IF NOT EXISTS idx_candidate_profile_city ON candidate.candidate_pro
 CREATE INDEX IF NOT EXISTS idx_candidate_profile_exp ON candidate.candidate_profile (total_experience_months);
 CREATE INDEX IF NOT EXISTS idx_candidate_profile_searchable ON candidate.candidate_profile (is_profile_searchable) WHERE is_profile_searchable = TRUE;
 CREATE INDEX IF NOT EXISTS idx_candidate_skill_lookup ON candidate.candidate_skill (candidate_id, skill_id);
-CREATE INDEX IF NOT EXISTS idx_candidate_block_lookup ON candidate.candidate_block_list (candidate_id, blocked_entity_id);
 
+-- Exact column names in candidate_block_list: blocked_organisation_id, blocked_recruiter_user_id
+CREATE INDEX IF NOT EXISTS idx_candidate_block_org ON candidate.candidate_block_list (candidate_id, blocked_organisation_id);
+CREATE INDEX IF NOT EXISTS idx_candidate_block_recruiter ON candidate.candidate_block_list (candidate_id, blocked_recruiter_user_id);
+
+-- Exact column names in job_requisition: publish_status, open_to_consultants
 CREATE INDEX IF NOT EXISTS idx_job_requisition_org ON recruitment.job_requisition (organisation_id);
-CREATE INDEX IF NOT EXISTS idx_job_requisition_status ON recruitment.job_requisition (status);
-CREATE INDEX IF NOT EXISTS idx_job_requisition_consultant ON recruitment.job_requisition (is_open_for_consultants) WHERE is_open_for_consultants = TRUE;
+CREATE INDEX IF NOT EXISTS idx_job_requisition_publish_status ON recruitment.job_requisition (publish_status);
+CREATE INDEX IF NOT EXISTS idx_job_requisition_consultant ON recruitment.job_requisition (open_to_consultants) WHERE open_to_consultants = TRUE;
 
-CREATE INDEX IF NOT EXISTS idx_job_application_req_cand ON application.job_application (job_requisition_id, candidate_id);
+-- Exact column name in job_application: requisition_id
+CREATE INDEX IF NOT EXISTS idx_job_application_req_cand ON application.job_application (requisition_id, candidate_id);
 CREATE INDEX IF NOT EXISTS idx_job_application_status ON application.job_application (application_status);
 
 CREATE INDEX IF NOT EXISTS idx_gig_request_status ON gig.gig_request (request_status);
@@ -2416,11 +2422,13 @@ CREATE INDEX IF NOT EXISTS idx_notification_user ON engagement.notification_deli
 -- ROW-LEVEL SECURITY (RLS) POLICIES (Section 3 Rules You Must Honour)
 -- -------------------------------------------------------------
 ALTER TABLE candidate.candidate_profile ENABLE ROW LEVEL SECURITY;
+ALTER TABLE candidate.candidate_block_list ENABLE ROW LEVEL SECURITY;
 ALTER TABLE recruitment.job_requisition ENABLE ROW LEVEL SECURITY;
+ALTER TABLE application.job_application ENABLE ROW LEVEL SECURITY;
 ALTER TABLE identity.user_credential ENABLE ROW LEVEL SECURITY;
 ALTER TABLE billing.wallet_account ENABLE ROW LEVEL SECURITY;
 
--- Policy 1: Candidate can only view & edit their own profile
+-- Policy 1: Candidate can view and update their own profile
 CREATE POLICY p_candidate_own_profile ON candidate.candidate_profile
     FOR ALL
     USING (
@@ -2428,7 +2436,7 @@ CREATE POLICY p_candidate_own_profile ON candidate.candidate_profile
         OR current_setting('app.current_role', true) IN ('SUPER_ADMIN', 'ADMIN')
     );
 
--- Policy 2: Recruiter search with Anti-Join Privacy Shield (candidate may block recruiters)
+-- Policy 2: Candidate search with Anti-Join Privacy Shield (using exact column blocked_organisation_id)
 CREATE POLICY p_candidate_recruiter_search ON candidate.candidate_profile
     FOR SELECT
     USING (
@@ -2438,11 +2446,23 @@ CREATE POLICY p_candidate_recruiter_search ON candidate.candidate_profile
             SELECT 1 
             FROM candidate.candidate_block_list bl
             WHERE bl.candidate_id = candidate.candidate_profile.id
-              AND bl.blocked_entity_id = NULLIF(current_setting('app.current_org_id', true), '')::UUID
+              AND bl.blocked_organisation_id = NULLIF(current_setting('app.current_org_id', true), '')::UUID
         )
     );
 
--- Policy 3: Recruiter may ONLY see job requirements assigned to their own company
+-- Policy 3: Candidate can view and manage only their own block entries
+CREATE POLICY p_candidate_own_blocks ON candidate.candidate_block_list
+    FOR ALL
+    USING (
+        candidate_id IN (
+            SELECT cp.id 
+            FROM candidate.candidate_profile cp 
+            WHERE cp.user_id = NULLIF(current_setting('app.current_user_id', true), '')::UUID
+        )
+        OR current_setting('app.current_role', true) IN ('SUPER_ADMIN', 'ADMIN')
+    );
+
+-- Policy 4: Recruiter may ONLY see job requisitions assigned to their own company
 CREATE POLICY p_recruiter_own_company_requisitions ON recruitment.job_requisition
     FOR ALL
     USING (
@@ -2450,17 +2470,41 @@ CREATE POLICY p_recruiter_own_company_requisitions ON recruitment.job_requisitio
         OR current_setting('app.current_role', true) IN ('SUPER_ADMIN', 'ADMIN')
     );
 
--- Policy 4: Consultant may ONLY work on job requirements open to consultants
+-- Policy 5: Sourcing Consultant may ONLY view requisitions open to consultants (open_to_consultants & publish_status)
 CREATE POLICY p_consultant_open_requisitions ON recruitment.job_requisition
     FOR SELECT
     USING (
         current_setting('app.current_role', true) = 'CONSULTANT'
-        AND is_open_for_consultants = TRUE
-        AND status = 'PUBLISHED'
+        AND open_to_consultants = TRUE
+        AND publish_status = 'PUBLISHED'
         AND deleted_at IS NULL
     );
 
--- Policy 5: User can only access their own credentials
+-- Policy 6: Candidate can view/withdraw only their own applications
+CREATE POLICY p_candidate_own_applications ON application.job_application
+    FOR ALL
+    USING (
+        candidate_id IN (
+            SELECT cp.id 
+            FROM candidate.candidate_profile cp 
+            WHERE cp.user_id = NULLIF(current_setting('app.current_user_id', true), '')::UUID
+        )
+        OR current_setting('app.current_role', true) IN ('SUPER_ADMIN', 'ADMIN')
+    );
+
+-- Policy 7: Recruiter can view applications only for their own company requisitions
+CREATE POLICY p_recruiter_own_applications ON application.job_application
+    FOR SELECT
+    USING (
+        requisition_id IN (
+            SELECT jr.id 
+            FROM recruitment.job_requisition jr 
+            WHERE jr.organisation_id = NULLIF(current_setting('app.current_org_id', true), '')::UUID
+        )
+        OR current_setting('app.current_role', true) IN ('SUPER_ADMIN', 'ADMIN')
+    );
+
+-- Policy 8: User can only access their own credentials
 CREATE POLICY p_user_own_credentials ON identity.user_credential
     FOR ALL
     USING (
@@ -2468,11 +2512,11 @@ CREATE POLICY p_user_own_credentials ON identity.user_credential
         OR current_setting('app.current_role', true) = 'SUPER_ADMIN'
     );
 
--- Policy 6: Organisation wallet access isolated to owning organisation
+-- Policy 9: Organisation wallet access strictly isolated to owning account (using exact column account_id)
 CREATE POLICY p_organisation_wallet_isolation ON billing.wallet_account
-    FOR SELECT
+    FOR ALL
     USING (
-        organisation_id = NULLIF(current_setting('app.current_org_id', true), '')::UUID
+        account_id = NULLIF(current_setting('app.current_account_id', true), '')::UUID
         OR current_setting('app.current_role', true) IN ('SUPER_ADMIN', 'FINANCE_ADMIN')
     );
 
@@ -2484,6 +2528,7 @@ CREATE POLICY p_organisation_wallet_isolation ON billing.wallet_account
 
 -- -------------------------------------------------------------
 -- ATOMIC DEVICE LIMIT & LOGIN PROCEDURE (Rule Group 9 / Backlog B45)
+-- Fails closed if enterprise user has no active commissioned license!
 -- -------------------------------------------------------------
 CREATE OR REPLACE FUNCTION identity.sp_enforce_user_login(
     p_user_id UUID,
@@ -2496,12 +2541,13 @@ CREATE OR REPLACE FUNCTION identity.sp_enforce_user_login(
 RETURNS UUID AS $$
 DECLARE
     v_user_account_id UUID;
-    v_max_devices INT := 3;
+    v_user_type VARCHAR(32);
+    v_max_devices INT;
     v_active_count INT;
     v_new_session_id UUID;
 BEGIN
     -- 1. Atomically lock user record to serialize concurrent logins (Rule Group 9)
-    SELECT id INTO v_user_account_id
+    SELECT id, user_type INTO v_user_account_id, v_user_type
     FROM identity.user_account
     WHERE id = p_user_id
     FOR UPDATE;
@@ -2519,79 +2565,53 @@ BEGIN
       AND sl.licence_status = 'ACTIVE_COMMISSIONED'
     LIMIT 1;
 
+    -- Fail-closed logic: if no active licence found, check if candidate or fail closed
     IF v_max_devices IS NULL OR v_max_devices <= 0 THEN
-        v_max_devices := 2; -- Default individual candidate limit
+        IF v_user_type = 'CANDIDATE' THEN
+            v_max_devices := 2; -- Standard allowance for individual candidate users
+        ELSE
+            -- Enterprise user with missing/expired licence: FAIL CLOSED!
+            INSERT INTO governance.system_audit_event (
+                id, actor_user_id, actor_ip, event_type, resource_entity, resource_id, tamper_hash, created_at
+            ) VALUES (
+                generate_uuid_v7(), p_user_id, p_ip_address, 'LOGIN_REFUSED_NO_ACTIVE_LICENCE', 'USER_ACTIVE_SESSION', p_user_id,
+                encode(digest(p_user_id::text || CURRENT_TIMESTAMP::text || 'NO_LICENCE', 'sha256'), 'hex'), CURRENT_TIMESTAMP
+            );
+            RAISE EXCEPTION 'ERR_NO_ACTIVE_LICENCE: User % has no active commissioned enterprise licence', p_user_id;
+        END IF;
     END IF;
 
     -- 3. Count current active, non-expired sessions
     SELECT COUNT(*) INTO v_active_count
     FROM identity.user_active_session
     WHERE user_id = p_user_id
-      AND is_active = TRUE
+      AND revoked_at IS NULL
       AND expires_at > CURRENT_TIMESTAMP;
 
     -- 4. Check device limit breach
     IF v_active_count >= v_max_devices THEN
         -- Record security refusal in immutable audit log (Rule Group 9)
         INSERT INTO governance.system_audit_event (
-            id,
-            actor_user_id,
-            action_type,
-            resource_type,
-            resource_id,
-            ip_address,
-            event_timestamp,
-            created_at,
-            created_by
-        )
-        VALUES (
-            gen_random_uuid(),
-            p_user_id,
-            'LOGIN_REFUSED_DEVICE_LIMIT_EXCEEDED',
-            'USER_ACTIVE_SESSION',
-            p_user_id,
-            p_ip_address,
-            CURRENT_TIMESTAMP,
-            CURRENT_TIMESTAMP,
-            p_user_id
+            id, actor_user_id, actor_ip, event_type, resource_entity, resource_id, tamper_hash, created_at
+        ) VALUES (
+            generate_uuid_v7(), p_user_id, p_ip_address, 'LOGIN_REFUSED_DEVICE_LIMIT_EXCEEDED', 'USER_ACTIVE_SESSION', p_user_id,
+            encode(digest(p_user_id::text || CURRENT_TIMESTAMP::text || p_device_identifier, 'sha256'), 'hex'), CURRENT_TIMESTAMP
         );
 
         RAISE EXCEPTION 'ERR_DEVICE_LIMIT_EXCEEDED: Maximum allowed devices (%) reached for user %', v_max_devices, p_user_id;
     END IF;
 
     -- 5. Successfully insert new active session
-    v_new_session_id := gen_random_uuid();
+    v_new_session_id := generate_uuid_v7();
     INSERT INTO identity.user_active_session (
-        id,
-        user_id,
-        session_token_hash,
-        device_identifier,
-        ip_address,
-        user_agent,
-        login_timestamp,
-        last_activity_timestamp,
-        expires_at,
-        is_active,
-        created_at,
-        created_by,
-        updated_at,
-        updated_by
-    )
-    VALUES (
-        v_new_session_id,
-        p_user_id,
-        encode(digest(v_new_session_id::text || CURRENT_TIMESTAMP::text, 'sha256'), 'hex'),
-        p_device_identifier,
-        p_ip_address,
-        p_user_agent,
-        CURRENT_TIMESTAMP,
-        CURRENT_TIMESTAMP,
+        id, user_id, session_token_hash, device_id, device_type, client_ip, user_agent,
+        started_at, last_activity_at, expires_at,
+        created_at, created_by, updated_at, updated_by
+    ) VALUES (
+        v_new_session_id, p_user_id, encode(digest(v_new_session_id::text || CURRENT_TIMESTAMP::text, 'sha256'), 'hex'),
+        p_device_identifier, p_device_type, p_ip_address, p_user_agent, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP + (p_session_duration_minutes || ' minutes')::INTERVAL,
-        TRUE,
-        CURRENT_TIMESTAMP,
-        p_user_id,
-        CURRENT_TIMESTAMP,
-        p_user_id
+        CURRENT_TIMESTAMP, p_user_id, CURRENT_TIMESTAMP, p_user_id
     );
 
     RETURN v_new_session_id;
@@ -2607,43 +2627,27 @@ CREATE OR REPLACE FUNCTION governance.sp_dpdp_crypto_shred(
 )
 RETURNS VOID AS $$
 BEGIN
-    -- 1. Shred candidate cryptographic key material
     UPDATE governance.pii_encryption_key
-    SET key_status = 'SHREDDED',
-        wrapped_key_material = '0000000000000000000000000000000000000000000000000000000000000000',
-        shredded_at = CURRENT_TIMESTAMP
-    WHERE entity_id = p_candidate_id
-      AND key_status = 'ACTIVE';
+    SET is_shredded = TRUE,
+        encrypted_dek = ' 00000000000000000000000000000000000000000000000000000000000000'::bytea,
+        shredded_at = CURRENT_TIMESTAMP,
+        shredded_by_user_id = p_actor_user_id
+    WHERE user_id = (SELECT user_id FROM candidate.candidate_profile WHERE id = p_candidate_id)
+      AND is_shredded = FALSE;
 
-    -- 2. Anonymize candidate profile and mask searchability
     UPDATE candidate.candidate_profile
     SET is_profile_searchable = FALSE,
-        summary = '[DATA SHREDDED PURSUANT TO DPDP ACT 2023]',
+        bio = '[DATA SHREDDED PURSUANT TO DPDP ACT 2023]',
         headline = 'Anonymized Candidate',
         updated_at = CURRENT_TIMESTAMP,
         updated_by = p_actor_user_id
     WHERE id = p_candidate_id;
 
-    -- 3. Record statutory erasure in immutable audit trail
     INSERT INTO governance.system_audit_event (
-        id,
-        actor_user_id,
-        action_type,
-        resource_type,
-        resource_id,
-        event_timestamp,
-        created_at,
-        created_by
-    )
-    VALUES (
-        gen_random_uuid(),
-        p_actor_user_id,
-        'RIGHT_TO_BE_FORGOTTEN_SHRED',
-        'CANDIDATE_PROFILE',
-        p_candidate_id,
-        CURRENT_TIMESTAMP,
-        CURRENT_TIMESTAMP,
-        p_actor_user_id
+        id, actor_user_id, actor_ip, event_type, resource_entity, resource_id, tamper_hash, created_at
+    ) VALUES (
+        generate_uuid_v7(), p_actor_user_id, '127.0.0.1'::inet, 'RIGHT_TO_BE_FORGOTTEN_SHRED', 'CANDIDATE_PROFILE', p_candidate_id,
+        encode(digest(p_actor_user_id::text || CURRENT_TIMESTAMP::text || p_candidate_id::text, 'sha256'), 'hex'), CURRENT_TIMESTAMP
     );
 END;
 $$ LANGUAGE plpgsql;
