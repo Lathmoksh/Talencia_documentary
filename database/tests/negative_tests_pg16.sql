@@ -129,15 +129,14 @@ END $$;
 
 -- ----------------------------------------------------------------------------
 -- TEST 3: DEVICE LIMIT LOGIN ENFORCEMENT & AUDIT REFUSAL (Rule Group 9 / Backlog B45)
--- Expectation: Exceeding max_devices_per_user triggers exception and audit record.
+-- Expectation: Exceeding max_devices_per_user returns denial status and commits audit record.
 -- ----------------------------------------------------------------------------
 DO $$
 DECLARE
     v_user_id UUID := '40000000-0000-4000-8000-000000000001';
     v_session_id UUID;
+    v_status VARCHAR(64);
     v_audit_count INT;
-    v_sqlstate text;
-    v_sqlerrm text;
 BEGIN
     -- Create candidate user (candidate allowance = 2 concurrent devices)
     INSERT INTO identity.user_account (
@@ -146,37 +145,42 @@ BEGIN
         v_user_id, 'devicetest@talentra.io', '+91', '9999900001', 'CANDIDATE', 'ACTIVE_VERIFIED'
     ) ON CONFLICT (id) DO NOTHING;
 
-    -- Clean up previous test sessions
+    -- Clean up previous test sessions and audits
     DELETE FROM identity.user_active_session WHERE user_id = v_user_id;
     DELETE FROM governance.system_audit_event WHERE actor_user_id = v_user_id;
 
     -- Device 1 login -> should succeed
-    v_session_id := identity.sp_enforce_user_login(v_user_id, 'DEV_MACBOOK_1', 'DESKTOP', '192.168.1.10'::INET, 'Mozilla/5.0');
+    SELECT session_id, login_status INTO v_session_id, v_status
+    FROM identity.sp_enforce_user_login(v_user_id, 'DEV_MACBOOK_1', 'DESKTOP', '192.168.1.10'::INET, 'Mozilla/5.0');
+    IF v_status <> 'SUCCESS' OR v_session_id IS NULL THEN
+        RAISE EXCEPTION 'TEST 3 FAILED: Device 1 login failed with status: %', v_status;
+    END IF;
+
     -- Device 2 login -> should succeed (max is 2)
-    v_session_id := identity.sp_enforce_user_login(v_user_id, 'DEV_IPHONE_2', 'MOBILE', '192.168.1.11'::INET, 'TalentraApp/1.0');
+    SELECT session_id, login_status INTO v_session_id, v_status
+    FROM identity.sp_enforce_user_login(v_user_id, 'DEV_IPHONE_2', 'MOBILE', '192.168.1.11'::INET, 'TalentraApp/1.0');
+    IF v_status <> 'SUCCESS' OR v_session_id IS NULL THEN
+        RAISE EXCEPTION 'TEST 3 FAILED: Device 2 login failed with status: %', v_status;
+    END IF;
 
-    -- Device 3 login -> MUST FAIL with ERR_DEVICE_LIMIT_EXCEEDED
-    BEGIN
-        v_session_id := identity.sp_enforce_user_login(v_user_id, 'DEV_IPAD_3', 'TABLET', '192.168.1.12'::INET, 'Mozilla/5.0');
-        RAISE EXCEPTION 'ASSERTION_FAILED: System permitted 3rd concurrent device session!';
-    EXCEPTION
-        WHEN OTHERS THEN
-            GET STACKED DIAGNOSTICS v_sqlstate = RETURNED_SQLSTATE, v_sqlerrm = MESSAGE_TEXT;
-            IF v_sqlerrm LIKE '%ERR_DEVICE_LIMIT_EXCEEDED%' THEN
-                RAISE NOTICE 'TEST 3 PASSED: 3rd device login correctly refused by atomic procedure (%s)', v_sqlerrm;
-            ELSE
-                RAISE EXCEPTION 'TEST 3 FAILED: Expected ERR_DEVICE_LIMIT_EXCEEDED, but got SQLSTATE %: %', v_sqlstate, v_sqlerrm;
-            END IF;
-    END;
+    -- Device 3 login -> MUST RETURN ERR_DEVICE_LIMIT_EXCEEDED with session_id NULL
+    SELECT session_id, login_status INTO v_session_id, v_status
+    FROM identity.sp_enforce_user_login(v_user_id, 'DEV_IPAD_3', 'TABLET', '192.168.1.12'::INET, 'Mozilla/5.0');
 
-    -- Verify security refusal was recorded in immutable system_audit_event
+    IF v_session_id IS NOT NULL OR v_status <> 'ERR_DEVICE_LIMIT_EXCEEDED' THEN
+        RAISE EXCEPTION 'ASSERTION_FAILED: System permitted 3rd concurrent device session! (Status: %, Session: %)', v_status, v_session_id;
+    ELSE
+        RAISE NOTICE 'TEST 3 PASSED: 3rd device login correctly refused with status %', v_status;
+    END IF;
+
+    -- Verify security refusal was recorded and committed in immutable system_audit_event
     SELECT COUNT(*) INTO v_audit_count
     FROM governance.system_audit_event
     WHERE actor_user_id = v_user_id 
       AND event_type = 'LOGIN_REFUSED_DEVICE_LIMIT_EXCEEDED';
 
     IF v_audit_count >= 1 THEN
-        RAISE NOTICE 'TEST 3 PASSED: Device limit refusal recorded in immutable governance.system_audit_event';
+        RAISE NOTICE 'TEST 3 PASSED: Device limit refusal successfully recorded in immutable governance.system_audit_event';
     ELSE
         RAISE EXCEPTION 'TEST 3 FAILED: No audit record created for refused login attempt!';
     END IF;
@@ -185,15 +189,14 @@ END $$;
 
 -- ----------------------------------------------------------------------------
 -- TEST 4: FAIL CLOSED ON MISSING ENTERPRISE LICENCE (Rule Group 9 Security Invariant)
--- Expectation: Enterprise user without active commissioned licence MUST be refused login.
+-- Expectation: Enterprise user without active commissioned licence returns refusal status and commits audit record.
 -- ----------------------------------------------------------------------------
 DO $$
 DECLARE
     v_ent_user_id UUID := '40000000-0000-4000-8000-000000000002';
     v_session_id UUID;
+    v_status VARCHAR(64);
     v_audit_count INT;
-    v_sqlstate text;
-    v_sqlerrm text;
 BEGIN
     -- Create enterprise recruiter user without any active subscription license
     INSERT INTO identity.user_account (
@@ -202,32 +205,28 @@ BEGIN
         v_ent_user_id, 'unlicensed.recruiter@talentra.io', '+1', '4155550999', 'ENTERPRISE_RECRUITER', 'ACTIVE_VERIFIED'
     ) ON CONFLICT (id) DO NOTHING;
 
-    -- Clean up previous test sessions/audits
+    -- Clean up previous test sessions and audits
     DELETE FROM identity.user_active_session WHERE user_id = v_ent_user_id;
     DELETE FROM governance.system_audit_event WHERE actor_user_id = v_ent_user_id;
 
-    -- Enterprise user login without active licence -> MUST FAIL CLOSED
-    BEGIN
-        v_session_id := identity.sp_enforce_user_login(v_ent_user_id, 'DEV_OFFICE_PC', 'DESKTOP', '10.0.0.50'::INET, 'Chrome/120.0');
-        RAISE EXCEPTION 'ASSERTION_FAILED: Enterprise login without active license did not fail closed!';
-    EXCEPTION
-        WHEN OTHERS THEN
-            GET STACKED DIAGNOSTICS v_sqlstate = RETURNED_SQLSTATE, v_sqlerrm = MESSAGE_TEXT;
-            IF v_sqlerrm LIKE '%ERR_NO_ACTIVE_LICENCE%' THEN
-                RAISE NOTICE 'TEST 4 PASSED: Missing licence correctly caused fail-closed refusal (%s)', v_sqlerrm;
-            ELSE
-                RAISE EXCEPTION 'TEST 4 FAILED: Expected ERR_NO_ACTIVE_LICENCE, but got SQLSTATE %: %', v_sqlstate, v_sqlerrm;
-            END IF;
-    END;
+    -- Enterprise user login without active licence -> MUST RETURN ERR_NO_ACTIVE_LICENCE with session_id NULL
+    SELECT session_id, login_status INTO v_session_id, v_status
+    FROM identity.sp_enforce_user_login(v_ent_user_id, 'DEV_OFFICE_PC', 'DESKTOP', '10.0.0.50'::INET, 'Chrome/120.0');
 
-    -- Verify refusal logged in audit log
+    IF v_session_id IS NOT NULL OR v_status <> 'ERR_NO_ACTIVE_LICENCE' THEN
+        RAISE EXCEPTION 'ASSERTION_FAILED: Enterprise login without active license did not fail closed! (Status: %, Session: %)', v_status, v_session_id;
+    ELSE
+        RAISE NOTICE 'TEST 4 PASSED: Missing licence correctly caused fail-closed refusal status %', v_status;
+    END IF;
+
+    -- Verify refusal logged and committed in audit log
     SELECT COUNT(*) INTO v_audit_count
     FROM governance.system_audit_event
     WHERE actor_user_id = v_ent_user_id 
       AND event_type = 'LOGIN_REFUSED_NO_ACTIVE_LICENCE';
 
     IF v_audit_count >= 1 THEN
-        RAISE NOTICE 'TEST 4 PASSED: Unlicensed enterprise login refusal recorded in governance.system_audit_event';
+        RAISE NOTICE 'TEST 4 PASSED: Unlicensed enterprise login refusal successfully recorded in governance.system_audit_event';
     ELSE
         RAISE EXCEPTION 'TEST 4 FAILED: No audit record created for unlicensed login attempt!';
     END IF;

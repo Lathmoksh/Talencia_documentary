@@ -62,7 +62,7 @@ def main():
 
     stages = [
         ('1. Baseline Migration', ['database/migrations/V1__baseline.sql']),
-        ('2. Master Reference Seeds', sorted(glob.glob('database/seeds/00_reference/*.sql'))),
+        ('2. Reference & Dev Seeds', sorted(glob.glob('database/seeds/00_reference/*.sql')) + sorted(glob.glob('database/seeds/01_dev/*.sql'))),
         ('3. Negative Constraint & RLS Suite', ['database/tests/negative_tests_pg16.sql']),
         ('4. 12 Fixed Query Benchmark Set', ['database/queries/fixed_query_set_12.sql'])
     ]

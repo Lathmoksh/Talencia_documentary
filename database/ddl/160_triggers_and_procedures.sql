@@ -15,7 +15,11 @@ CREATE OR REPLACE FUNCTION identity.sp_enforce_user_login(
     p_user_agent TEXT,
     p_session_duration_minutes INT DEFAULT 1440
 )
-RETURNS UUID AS $$
+RETURNS TABLE (
+    session_id UUID,
+    login_status VARCHAR(64),
+    refusal_reason TEXT
+) AS $$
 DECLARE
     v_user_account_id UUID;
     v_user_type VARCHAR(32);
@@ -30,7 +34,11 @@ BEGIN
     FOR UPDATE;
 
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'ERR_USER_NOT_FOUND: User % does not exist', p_user_id;
+        session_id := NULL;
+        login_status := 'ERR_USER_NOT_FOUND';
+        refusal_reason := format('User %s does not exist', p_user_id);
+        RETURN NEXT;
+        RETURN;
     END IF;
 
     -- 2. Lookup maximum devices allowed per user under the active subscription licence
@@ -60,13 +68,19 @@ BEGIN
             v_max_devices := 2; -- Standard allowance for individual candidate users
         ELSE
             -- Enterprise user with missing/expired licence: FAIL CLOSED!
+            -- Record refusal in immutable audit log (Rule Group 9) and commit normally
             INSERT INTO governance.system_audit_event (
                 id, actor_user_id, actor_ip, event_type, resource_entity, resource_id, tamper_hash, created_at
             ) VALUES (
                 generate_uuid_v7(), p_user_id, p_ip_address, 'LOGIN_REFUSED_NO_ACTIVE_LICENCE', 'USER_ACTIVE_SESSION', p_user_id,
                 encode(digest(p_user_id::text || CURRENT_TIMESTAMP::text || 'NO_LICENCE', 'sha256'), 'hex'), CURRENT_TIMESTAMP
             );
-            RAISE EXCEPTION 'ERR_NO_ACTIVE_LICENCE: User % has no active commissioned enterprise licence', p_user_id;
+
+            session_id := NULL;
+            login_status := 'ERR_NO_ACTIVE_LICENCE';
+            refusal_reason := format('User %s has no active commissioned enterprise licence', p_user_id);
+            RETURN NEXT;
+            RETURN;
         END IF;
     END IF;
 
@@ -79,7 +93,7 @@ BEGIN
 
     -- 4. Check device limit breach
     IF v_active_count >= v_max_devices THEN
-        -- Record security refusal in immutable audit log (Rule Group 9)
+        -- Record security refusal in immutable audit log (Rule Group 9) and commit normally
         INSERT INTO governance.system_audit_event (
             id, actor_user_id, actor_ip, event_type, resource_entity, resource_id, tamper_hash, created_at
         ) VALUES (
@@ -87,7 +101,11 @@ BEGIN
             encode(digest(p_user_id::text || CURRENT_TIMESTAMP::text || p_device_identifier, 'sha256'), 'hex'), CURRENT_TIMESTAMP
         );
 
-        RAISE EXCEPTION 'ERR_DEVICE_LIMIT_EXCEEDED: Maximum allowed devices (%) reached for user %', v_max_devices, p_user_id;
+        session_id := NULL;
+        login_status := 'ERR_DEVICE_LIMIT_EXCEEDED';
+        refusal_reason := format('Maximum allowed devices (%s) reached for user %s', v_max_devices, p_user_id);
+        RETURN NEXT;
+        RETURN;
     END IF;
 
     -- 5. Successfully insert new active session
@@ -103,7 +121,11 @@ BEGIN
         CURRENT_TIMESTAMP, p_user_id, CURRENT_TIMESTAMP, p_user_id
     );
 
-    RETURN v_new_session_id;
+    session_id := v_new_session_id;
+    login_status := 'SUCCESS';
+    refusal_reason := NULL;
+    RETURN NEXT;
+    RETURN;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -166,12 +188,12 @@ BEGIN
         UPDATE billing.wallet_account
         SET current_balance = current_balance + NEW.amount,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = NEW.wallet_account_id;
+        WHERE id = NEW.wallet_id;
     ELSIF NEW.entry_type = 'DEBIT' THEN
         UPDATE billing.wallet_account
         SET current_balance = current_balance - NEW.amount,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = NEW.wallet_account_id;
+        WHERE id = NEW.wallet_id;
     END IF;
     RETURN NEW;
 END;

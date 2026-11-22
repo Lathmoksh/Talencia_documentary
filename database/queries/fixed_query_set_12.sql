@@ -2,9 +2,166 @@
 -- TALENTRA ENTERPRISE PLATFORM: FIXED QUERY SET (12 QUERIES)
 -- Milestone 20 / Backlog B65: Fixed Query Set with Execution Plans & Latency
 -- Target Engine: PostgreSQL 16 (Compatible with Enterprise RDBMS Standards)
+-- Includes Self-Contained Benchmark Fixture Initialization Block
 -- ============================================================================
 
--- ----------------------------------------------------------------------------
+-- ============================================================================
+-- BENCHMARK TEST FIXTURE INITIALIZATION BLOCK
+-- Guarantees all foreign keys and relations exist for fixed queries Q01 - Q12
+-- ============================================================================
+BEGIN;
+
+-- 1. Users
+INSERT INTO identity.user_account (id, email, phone_country_code, phone_number, user_type, account_status)
+VALUES 
+  ('10000000-0000-4000-8000-000000000001', 'benchmark.recruiter1@talentra.io', '+1', '4155550001', 'ENTERPRISE_RECRUITER', 'ACTIVE_VERIFIED'),
+  ('10000000-0000-4000-8000-000000000002', 'benchmark.recruiter2@talentra.io', '+1', '4155550002', 'ENTERPRISE_RECRUITER', 'ACTIVE_VERIFIED'),
+  ('10000000-0000-4000-8000-000000000003', 'benchmark.candidate1@talentra.io', '+91', '9888800003', 'CANDIDATE', 'ACTIVE_VERIFIED'),
+  ('11111111-1111-4000-8000-000000000001', 'benchmark.candidate2@talentra.io', '+91', '9888800004', 'CANDIDATE', 'ACTIVE_VERIFIED'),
+  ('20000000-0000-4000-8000-000000000001', 'benchmark.gigworker@talentra.io', '+44', '7911123456', 'GIG_WORKER', 'ACTIVE_VERIFIED')
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. Master Data Dependencies
+INSERT INTO master_data.country (id, iso_alpha2_code, iso_alpha3_code, country_name, phone_dialing_code, currency_code, is_active)
+VALUES ('00000000-0000-4000-8000-000000000001', 'IN', 'IND', 'India', '+91', 'INR', true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO master_data.state (id, country_id, state_code, state_name, is_active)
+VALUES ('00000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000001', 'KA', 'Karnataka', true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO master_data.city (id, country_id, state_id, city_name, latitude, longitude, is_active)
+VALUES ('00000000-0000-4000-8000-000000000021', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000011', 'Bengaluru', 12.9716, 77.5946, true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO master_data.industry (id, industry_code, industry_name, description, is_active)
+VALUES ('00000000-0000-4000-8000-000000000031', 'TECH', 'Technology', 'Software & Internet', true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO master_data.job_role (id, industry_id, role_code, role_title, description, is_active)
+VALUES ('00000000-0000-4000-8000-000000000041', '00000000-0000-4000-8000-000000000031', 'BACKEND_DEV', 'Backend Systems Engineer', 'Distributed backend systems', true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO master_data.skill (id, skill_code, skill_name, category, is_active)
+VALUES ('00000000-0000-4000-8000-000000000051', 'POSTGRES', 'PostgreSQL High-Performance', 'TECHNICAL_DATABASE', true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO master_data.qualification (id, qualification_code, qualification_name, qualification_level, field_of_study, is_active)
+VALUES ('00000000-0000-4000-8000-000000000061', 'B_TECH', 'Bachelor of Technology', 'UNDERGRADUATE', 'Computer Science', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- 3. Organisation & Licensing
+INSERT INTO organisation.account (id, account_name, account_type, account_status, billing_currency_code)
+VALUES ('00000000-0000-4000-8000-000000000001', 'Acme Enterprise Global', 'ENTERPRISE', 'PAID_ACTIVE', 'USD')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO organisation.organisation (id, account_id, legal_name, company_registration_number, industry_id, company_size_tier)
+VALUES ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000001', 'Acme Corporation Ltd', 'CIN-ACME-001', '00000000-0000-4000-8000-000000000031', 'ENTERPRISE_1000_PLUS')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO organisation.recruiter_seat_assignment (id, organisation_id, user_id, seat_status, assigned_at)
+VALUES ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', 'ACTIVE', CURRENT_TIMESTAMP)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO licensing.subscription_plan (id, plan_code, plan_name, tier_level, billing_cycle, base_price_amount, currency_code, max_recruiter_seats, max_devices_per_user, is_active)
+VALUES ('30000000-0000-4000-8000-000000000003', 'PLAN_ENT_BM', 'Enterprise Benchmark Plan', 'ENTERPRISE_CUSTOM', 'ANNUAL', 30000.00, 'USD', 50, 3, true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO licensing.subscription_licence (id, account_id, plan_id, licence_status, validity_period, allocated_seats_count)
+VALUES ('30000000-0000-4000-8000-000000000004', '00000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000003', 'ACTIVE_COMMISSIONED', tstzrange('2026-01-01 00:00:00+00', '2026-12-31 23:59:59+00', '[]'), 20)
+ON CONFLICT (id) DO NOTHING;
+
+-- 4. Requisition Fixture
+INSERT INTO recruitment.job_requisition (
+    id, organisation_id, posted_by_user_id, job_role_id, job_title, job_category, city_id,
+    min_salary_amount, max_salary_amount, job_description, publish_status, open_to_consultants
+) VALUES (
+    '00000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001',
+    '00000000-0000-4000-8000-000000000041', 'Principal Distributed Systems Engineer', 'WHITE_COLLAR_CORE',
+    '00000000-0000-4000-8000-000000000021', 180000.00, 260000.00, 'High throughput PostgreSQL distributed clustering architect',
+    'PUBLISHED', TRUE
+) ON CONFLICT (id) DO NOTHING;
+
+-- 5. Candidate Profile, Resume, Skill, Education, PII Key
+INSERT INTO candidate.candidate_profile (
+    id, user_id, first_name, last_name, display_name, headline, summary,
+    current_city_id, total_experience_months, expected_salary_amount, salary_currency_code,
+    notice_period_days, profile_completion_percentage, is_profile_searchable
+) VALUES (
+    '11111111-1111-4000-8000-000000000001', '11111111-1111-4000-8000-000000000001', 'Arjun', 'Mehta', 'Arjun Mehta',
+    'Principal Database Architect', '10+ years specializing in PostgreSQL 16 internals, partitioning, and high-volume OLTP systems.',
+    '00000000-0000-4000-8000-000000000021', 48, 220000.00, 'USD', 30, 95.0, TRUE
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO candidate.candidate_resume (id, candidate_id, resume_title, storage_path, file_format, file_size_bytes, is_primary, version_number)
+VALUES ('5bfebc99-9c0b-4ef8-bb6d-6bb9bd380d06', '11111111-1111-4000-8000-000000000001', 'arjun_mehta_resume.pdf', 's3://talentra-resumes/arjun.pdf', 'PDF', 245000, TRUE, 1)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO candidate.candidate_skill (id, candidate_id, skill_id, proficiency_level, years_of_experience, is_primary)
+VALUES ('11111111-1111-4000-8000-000000000002', '11111111-1111-4000-8000-000000000001', '00000000-0000-4000-8000-000000000051', 'EXPERT', 5.0, TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO candidate.candidate_education (id, candidate_id, qualification_id, institution_name, field_of_study, start_date, end_date, grade_percentage, is_completed)
+VALUES ('11111111-1111-4000-8000-000000000003', '11111111-1111-4000-8000-000000000001', '00000000-0000-4000-8000-000000000061', 'IIT Bombay', 'Computer Science & Engineering', '2016-08-01', '2020-05-31', 89.50, TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO governance.pii_encryption_key (id, user_id, encrypted_dek, key_version, is_shredded)
+VALUES ('11111111-1111-4000-8000-000000000004', '11111111-1111-4000-8000-000000000001', decode('0123456789abcdef0123456789abcdef', 'hex'), 1, FALSE)
+ON CONFLICT (id) DO NOTHING;
+
+-- 6. Gig Worker Profile & Contract
+INSERT INTO gig.gig_worker_profile (id, user_id, professional_title, bio_summary, hourly_rate_amount, rate_currency_code, availability_status)
+VALUES ('20000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'Staff Cloud Systems Architect', 'High-volume PostgreSQL distributed tuning', 150.00, 'USD', 'AVAILABLE')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO gig.gig_request (id, organisation_id, posted_by_user_id, title, description, budget_type, budget_amount, budget_currency_code, request_status)
+VALUES ('20000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', 'Database Performance Audit', 'Audit 50k write TPS cluster', 'FIXED_PRICE', 5000.00, 'USD', 'MATCH_CONFIRMED')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO gig.gig_contract (id, request_id, organisation_id, worker_id, contract_status, agreed_amount, currency_code, agreed_window)
+VALUES ('20000000-0000-4000-8000-000000000021', '20000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'ACTIVE_IN_PROGRESS', 5000.00, 'USD', tstzrange('2026-12-05 09:00:00+00', '2026-12-10 18:00:00+00', '[]'))
+ON CONFLICT (id) DO NOTHING;
+
+-- 7. Campus Drive Cohort & Member
+INSERT INTO engagement.campus_placement_cohort (id, tpo_user_id, institution_name, degree_program, graduation_year, cohort_status)
+VALUES ('70000000-0000-4000-8000-000000000001', '10000000-0000-4000-8000-000000000001', 'National Institute of Technology', 'B.Tech Computer Science', 2027, 'DRIVE_ACTIVE')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO engagement.campus_student_member (id, cohort_id, candidate_id, university_roll_number, cumulative_gpa, placement_status)
+VALUES ('70000000-0000-4000-8000-000000000002', '70000000-0000-4000-8000-000000000001', '11111111-1111-4000-8000-000000000001', 'NITK-2023-CS-042', 8.85, 'VERIFIED_ELIGIBLE')
+ON CONFLICT (id) DO NOTHING;
+
+-- 8. Notification Delivery Fixture
+INSERT INTO engagement.notification_delivery (id, user_id, notification_category, channel, title, body_preview, delivery_status, created_at, dispatched_at)
+VALUES (generate_uuid_v7(), '10000000-0000-4000-8000-000000000001', 'SYSTEM', 'EMAIL', 'Interview Rescheduled', 'Notification body preview', 'FAILED_RETRY_SCHEDULED', '2026-11-10 10:00:00+00', '2026-11-10 10:01:00+00')
+ON CONFLICT (id, created_at) DO NOTHING;
+
+-- 9. Analytics Kimball Dimensions & Facts
+INSERT INTO analytics.dim_date (date_key, full_date, calendar_year, calendar_quarter, month_number, month_name, day_of_month, day_of_week, day_name, is_weekend, is_holiday)
+VALUES (20261115, '2026-11-15', 2026, 4, 11, 'November', 15, 7, 'Sunday', true, false)
+ON CONFLICT (date_key) DO NOTHING;
+
+INSERT INTO analytics.dim_pipeline_stage (stage_key, stage_code, stage_name, funnel_order, is_terminal_stage)
+VALUES 
+  (1, 'SUBMITTED', 'Submitted', 1, false),
+  (10, 'JOINED_HIRED', 'Joined and Hired', 10, true)
+ON CONFLICT (stage_key) DO NOTHING;
+
+INSERT INTO analytics.dim_job_requisition (requisition_key, requisition_id, organisation_id, job_role_title, job_category, job_type, created_at)
+VALUES (1, '00000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000001', 'Principal Distributed Systems Engineer', 'WHITE_COLLAR_CORE', 'PERMANENT_FULL_TIME', CURRENT_TIMESTAMP)
+ON CONFLICT (requisition_key) DO NOTHING;
+
+INSERT INTO analytics.dim_candidate (candidate_key, candidate_id, total_experience_months, highest_qualification, created_at)
+VALUES (1, '11111111-1111-4000-8000-000000000001', 48, 'B_TECH', CURRENT_TIMESTAMP)
+ON CONFLICT (candidate_key) DO NOTHING;
+
+INSERT INTO analytics.fact_application_event (id, date_key, requisition_key, candidate_key, organisation_key, from_stage_key, to_stage_key, stage_duration_hours, created_at)
+VALUES (generate_uuid_v7(), 20261115, 1, 1, 1, 1, 10, 48.0, '2026-11-15 14:00:00+00')
+ON CONFLICT DO NOTHING;
+
+COMMIT;
+
+
 -- Q01 [Functional / Search]: Multi-Condition Trigram Candidate Search with Anti-Join
 -- Purpose: Recruiter searches for qualified candidates by skill, experience band,
 --          city, and ensures blocked employers are excluded via privacy anti-join.
@@ -96,7 +253,7 @@ INSERT INTO application.job_application (
     created_by
 )
 VALUES (
-    generate_uuid_v7(),
+    '00000000-0000-4000-8000-000000000099',
     '00000000-0000-4000-8000-000000000011',
     '11111111-1111-4000-8000-000000000001',
     '5bfebc99-9c0b-4ef8-bb6d-6bb9bd380d06',
@@ -105,7 +262,8 @@ VALUES (
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP,
     '10000000-0000-4000-8000-000000000003'
-);
+)
+ON CONFLICT (id, applied_at) DO NOTHING;
 
 INSERT INTO application.application_stage_history (
     id,
@@ -114,16 +272,20 @@ INSERT INTO application.application_stage_history (
     to_stage,
     stage_notes,
     changed_by_user_id,
-    created_at
+    transition_timestamp,
+    created_at,
+    created_by
 )
 VALUES (
     generate_uuid_v7(),
-    '00000000-0000-4000-8000-000000000011',
+    '00000000-0000-4000-8000-000000000099',
     NULL,
     'SUBMITTED',
     'Initial Candidate Application Submission',
     '10000000-0000-4000-8000-000000000003',
-    CURRENT_TIMESTAMP
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP,
+    '10000000-0000-4000-8000-000000000003'
 );
 
 COMMIT;

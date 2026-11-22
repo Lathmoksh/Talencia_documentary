@@ -2388,6 +2388,54 @@ ALTER TABLE analytics.fact_wallet_transaction ADD CONSTRAINT fk_fact_wallet_tran
 ALTER TABLE master_data.enum_lookup ADD CONSTRAINT fk_enum_lookup_language_code FOREIGN KEY (language_code) REFERENCES master_data.language (language_code) ON DELETE RESTRICT;
 ALTER TABLE master_data.enum_lookup ADD CONSTRAINT fk_enum_lookup_created_by FOREIGN KEY (created_by) REFERENCES identity.user_account (id) ON DELETE RESTRICT;
 ALTER TABLE master_data.enum_lookup ADD CONSTRAINT fk_enum_lookup_updated_by FOREIGN KEY (updated_by) REFERENCES identity.user_account (id) ON DELETE RESTRICT;
+ALTER TABLE master_data.enum_lookup ADD CONSTRAINT uq_enum_lookup_domain_code UNIQUE (enum_domain, enum_code);
+
+-- -------------------------------------------------------------
+-- ENUM LOOKUP INTEGRITY ENFORCEMENT (Rule Group 3)
+-- Validates status/type values in child tables against master_data.enum_lookup
+-- -------------------------------------------------------------
+CREATE OR REPLACE FUNCTION master_data.fn_validate_enum_lookup(p_domain VARCHAR, p_code VARCHAR)
+RETURNS BOOLEAN AS $$
+BEGIN
+    IF p_code IS NULL THEN
+        RETURN TRUE;
+    END IF;
+    -- During bootstrap before domain is seeded, allow insert
+    IF NOT EXISTS (SELECT 1 FROM master_data.enum_lookup WHERE enum_domain = p_domain) THEN
+        RETURN TRUE;
+    END IF;
+    -- Once domain is seeded, enforce membership strictly
+    RETURN EXISTS (
+        SELECT 1 FROM master_data.enum_lookup
+        WHERE enum_domain = p_domain AND enum_code = p_code AND is_active = TRUE
+    );
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+-- Wire enum_lookup verification to core operational domain tables
+ALTER TABLE identity.user_account ADD CONSTRAINT chk_user_account_status_lookup 
+    CHECK (master_data.fn_validate_enum_lookup('account_status', account_status));
+
+ALTER TABLE organisation.account ADD CONSTRAINT chk_org_account_status_lookup 
+    CHECK (master_data.fn_validate_enum_lookup('org_account_status', account_status));
+
+ALTER TABLE recruitment.job_requisition ADD CONSTRAINT chk_job_requisition_publish_status_lookup 
+    CHECK (master_data.fn_validate_enum_lookup('publish_status', publish_status));
+
+ALTER TABLE application.job_application ADD CONSTRAINT chk_job_application_status_lookup 
+    CHECK (master_data.fn_validate_enum_lookup('application_status', application_status));
+
+ALTER TABLE licensing.subscription_licence ADD CONSTRAINT chk_licence_status_lookup 
+    CHECK (master_data.fn_validate_enum_lookup('licence_status', licence_status));
+
+ALTER TABLE gig.gig_contract ADD CONSTRAINT chk_gig_contract_status_lookup 
+    CHECK (master_data.fn_validate_enum_lookup('contract_status', contract_status));
+
+ALTER TABLE gig.gig_milestone ADD CONSTRAINT chk_gig_milestone_status_lookup 
+    CHECK (master_data.fn_validate_enum_lookup('milestone_status', milestone_status));
+
+ALTER TABLE billing.wallet_ledger ADD CONSTRAINT chk_wallet_ledger_entry_type_lookup 
+    CHECK (master_data.fn_validate_enum_lookup('wallet_entry_type', entry_type));
 
 -- -------------------------------------------------------------
 -- PERFORMANCE INDEXES (Trigram, Range & Covering)
@@ -2538,7 +2586,11 @@ CREATE OR REPLACE FUNCTION identity.sp_enforce_user_login(
     p_user_agent TEXT,
     p_session_duration_minutes INT DEFAULT 1440
 )
-RETURNS UUID AS $$
+RETURNS TABLE (
+    session_id UUID,
+    login_status VARCHAR(64),
+    refusal_reason TEXT
+) AS $$
 DECLARE
     v_user_account_id UUID;
     v_user_type VARCHAR(32);
@@ -2553,7 +2605,11 @@ BEGIN
     FOR UPDATE;
 
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'ERR_USER_NOT_FOUND: User % does not exist', p_user_id;
+        session_id := NULL;
+        login_status := 'ERR_USER_NOT_FOUND';
+        refusal_reason := format('User %s does not exist', p_user_id);
+        RETURN NEXT;
+        RETURN;
     END IF;
 
     -- 2. Lookup maximum devices allowed per user under the active subscription licence
@@ -2583,13 +2639,19 @@ BEGIN
             v_max_devices := 2; -- Standard allowance for individual candidate users
         ELSE
             -- Enterprise user with missing/expired licence: FAIL CLOSED!
+            -- Record refusal in immutable audit log (Rule Group 9) and commit normally
             INSERT INTO governance.system_audit_event (
                 id, actor_user_id, actor_ip, event_type, resource_entity, resource_id, tamper_hash, created_at
             ) VALUES (
                 generate_uuid_v7(), p_user_id, p_ip_address, 'LOGIN_REFUSED_NO_ACTIVE_LICENCE', 'USER_ACTIVE_SESSION', p_user_id,
                 encode(digest(p_user_id::text || CURRENT_TIMESTAMP::text || 'NO_LICENCE', 'sha256'), 'hex'), CURRENT_TIMESTAMP
             );
-            RAISE EXCEPTION 'ERR_NO_ACTIVE_LICENCE: User % has no active commissioned enterprise licence', p_user_id;
+
+            session_id := NULL;
+            login_status := 'ERR_NO_ACTIVE_LICENCE';
+            refusal_reason := format('User %s has no active commissioned enterprise licence', p_user_id);
+            RETURN NEXT;
+            RETURN;
         END IF;
     END IF;
 
@@ -2602,7 +2664,7 @@ BEGIN
 
     -- 4. Check device limit breach
     IF v_active_count >= v_max_devices THEN
-        -- Record security refusal in immutable audit log (Rule Group 9)
+        -- Record security refusal in immutable audit log (Rule Group 9) and commit normally
         INSERT INTO governance.system_audit_event (
             id, actor_user_id, actor_ip, event_type, resource_entity, resource_id, tamper_hash, created_at
         ) VALUES (
@@ -2610,7 +2672,11 @@ BEGIN
             encode(digest(p_user_id::text || CURRENT_TIMESTAMP::text || p_device_identifier, 'sha256'), 'hex'), CURRENT_TIMESTAMP
         );
 
-        RAISE EXCEPTION 'ERR_DEVICE_LIMIT_EXCEEDED: Maximum allowed devices (%) reached for user %', v_max_devices, p_user_id;
+        session_id := NULL;
+        login_status := 'ERR_DEVICE_LIMIT_EXCEEDED';
+        refusal_reason := format('Maximum allowed devices (%s) reached for user %s', v_max_devices, p_user_id);
+        RETURN NEXT;
+        RETURN;
     END IF;
 
     -- 5. Successfully insert new active session
@@ -2626,7 +2692,11 @@ BEGIN
         CURRENT_TIMESTAMP, p_user_id, CURRENT_TIMESTAMP, p_user_id
     );
 
-    RETURN v_new_session_id;
+    session_id := v_new_session_id;
+    login_status := 'SUCCESS';
+    refusal_reason := NULL;
+    RETURN NEXT;
+    RETURN;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -2689,12 +2759,12 @@ BEGIN
         UPDATE billing.wallet_account
         SET current_balance = current_balance + NEW.amount,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = NEW.wallet_account_id;
+        WHERE id = NEW.wallet_id;
     ELSIF NEW.entry_type = 'DEBIT' THEN
         UPDATE billing.wallet_account
         SET current_balance = current_balance - NEW.amount,
             updated_at = CURRENT_TIMESTAMP
-        WHERE id = NEW.wallet_account_id;
+        WHERE id = NEW.wallet_id;
     END IF;
     RETURN NEW;
 END;

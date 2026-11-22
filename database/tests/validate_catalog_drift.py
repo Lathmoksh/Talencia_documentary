@@ -2,8 +2,8 @@
 """
 Talentra Enterprise Platform: Catalog Drift Validator (DDDL Step 19)
 Single Source of Truth: database/schema_definition_90_tables.json
-Validates that every table and column referenced in DDL, migrations, seeds,
-negative tests, and benchmark queries exists in the canonical schema catalog.
+Validates that every table, column, and PL/pgSQL trigger field referenced in DDL,
+migrations, seeds, negative tests, and benchmark queries exists in the canonical schema catalog.
 """
 
 import os
@@ -82,7 +82,29 @@ def validate_sql_file(filepath):
                 if col not in catalog[tbl]:
                     errors.append(f"UPDATE references non-existent column '{col}' on table '{tbl}'")
 
-    # 4. Check explicit alias.column references
+    # 4. Check PL/pgSQL Trigger Bodies: verify NEW.<field> and OLD.<field> against target table
+    # Map functions to target tables via triggers
+    trg_map = {}
+    for tm in re.finditer(r'CREATE\s+TRIGGER\s+[a-zA-Z0-9_]+\s+(?:BEFORE|AFTER)\s+INSERT(?:\s+OR\s+[a-zA-Z]+)*\s+ON\s+([a-zA-Z0-9_\.]+)\s+FOR\s+EACH\s+ROW\s+EXECUTE\s+FUNCTION\s+([a-zA-Z0-9_\.]+)\s*\(', content, re.IGNORECASE):
+        tbl = tm.group(1).lower()
+        func = tm.group(2).lower().split('.')[-1]
+        if '.' not in tbl and tbl in table_short_names:
+            tbl = table_short_names[tbl]
+        trg_map[func] = tbl
+
+    for func_name, target_table in trg_map.items():
+        if target_table in catalog:
+            # find function body
+            func_pat = rf'FUNCTION\s+(?:[a-zA-Z0-9_]+\.)?{func_name}\s*\([^)]*\).*?\$\$(.*?)\$\$'
+            func_match = re.search(func_pat, content, re.IGNORECASE | re.DOTALL)
+            if func_match:
+                body = func_match.group(1)
+                for fld in re.finditer(r'\b(?:NEW|OLD)\.([a-zA-Z0-9_]+)\b', body):
+                    fld_name = fld.group(1).lower()
+                    if fld_name not in catalog[target_table]:
+                        errors.append(f"Trigger function '{func_name}' references non-existent field '{fld_name}' for table '{target_table}'")
+
+    # 5. Check explicit alias.column references in fixed queries
     alias_map = {
         'cp': 'candidate.candidate_profile',
         'ja': 'application.job_application',
