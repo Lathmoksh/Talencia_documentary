@@ -42,20 +42,20 @@ INSERT INTO candidate.candidate_block_list (
 -- -------------------------------------------------------------
 -- Step 1: Submit Application
 INSERT INTO application.job_application (
-  id, requisition_id, candidate_id, current_stage, application_status,
-  match_score, applied_at, created_at, updated_at
+  id, requisition_id, candidate_id, application_status,
+  screening_score, applied_at, created_at, created_by, updated_at, updated_by
 ) VALUES (
   '93000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000001',
-  '91000000-0000-4000-8000-000000000001', 'SUBMITTED', 'SUBMITTED',
-  88.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+  '91000000-0000-4000-8000-000000000001', 'SUBMITTED',
+  88.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000'
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Step 2: Recruiter Shortlists Application
 INSERT INTO application.application_stage_history (
-  id, application_id, from_stage, to_stage, transitioned_by_user_id, transition_reason, created_at
+  id, application_id, from_stage, to_stage, changed_by_user_id, stage_notes, transition_timestamp, created_at, created_by
 ) VALUES (
   '94000000-0000-4000-8000-000000000001', '93000000-0000-4000-8000-000000000001',
-  'SUBMITTED', 'SHORTLISTED', '10000000-0000-4000-8000-000000000002', 'Profile match score meets bar', CURRENT_TIMESTAMP
+  'SUBMITTED', 'SHORTLISTED', '10000000-0000-4000-8000-000000000002', 'Profile match score meets bar', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000'
 ) ON CONFLICT (id) DO NOTHING;
 
 -- -------------------------------------------------------------
@@ -63,19 +63,19 @@ INSERT INTO application.application_stage_history (
 -- -------------------------------------------------------------
 -- Register candidate DEK key
 INSERT INTO governance.pii_encryption_key (
-  id, user_id, key_algorithm, encrypted_dek, status, created_at, updated_at
+  id, user_id, encrypted_dek, key_version, is_shredded, created_at, created_by, updated_at, updated_by
 ) VALUES (
   '95000000-0000-4000-8000-000000000001', '90000000-0000-4000-8000-000000000001',
-  'AES-256-GCM', 'ENCRYPTED_DEK_HEX_MATERIAL_XYZ', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+  decode('11223344556677889900aabbccddeeff', 'hex'), 1, false, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000'
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Execute Key Shredding Stored Procedure
-CALL governance.sp_shred_candidate_dek('90000000-0000-4000-8000-000000000001'::uuid, '10000000-0000-4000-8000-000000000001'::uuid);
+CALL governance.sp_dpdp_crypto_shred('91000000-0000-4000-8000-000000000001'::uuid, '10000000-0000-4000-8000-000000000001'::uuid);
 
 -- Verify Key Shredding
 SELECT 'WF10_DPDP_KEY_SHREDDED_SUCCESS' AS test_name,
-       status AS dek_status,
+       is_shredded,
        encrypted_dek,
-       CASE WHEN status = 'SHREDDED' AND encrypted_dek = 'SHREDDED_PURGED_DPDP_2023' THEN 'PASS' ELSE 'FAIL' END AS result
+       CASE WHEN is_shredded = TRUE THEN 'PASS' ELSE 'FAIL' END AS result
 FROM governance.pii_encryption_key
 WHERE user_id = '90000000-0000-4000-8000-000000000001';

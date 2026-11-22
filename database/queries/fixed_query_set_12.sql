@@ -53,7 +53,7 @@ SELECT
     cp.first_name,
     cp.last_name,
     cp.headline,
-    cp.bio,
+    cp.summary,
     cp.total_experience_months,
     cp.expected_salary_amount,
     cp.notice_period_days,
@@ -90,7 +90,7 @@ INSERT INTO application.job_application (
     candidate_id, 
     resume_id,
     application_status, 
-    match_score, 
+    screening_score, 
     applied_at, 
     created_at, 
     created_by
@@ -139,7 +139,7 @@ EXPLAIN ANALYZE
 SELECT 
     ja.application_status,
     COUNT(ja.id) AS candidate_count,
-    ROUND(AVG(ja.match_score), 2) AS avg_match_score,
+    ROUND(AVG(ja.screening_score), 2) AS avg_screening_score,
     MIN(ja.applied_at) AS oldest_application,
     MAX(ja.applied_at) AS newest_application
 FROM application.job_application ja
@@ -156,6 +156,15 @@ ORDER BY candidate_count DESC;
 -- Benchmark Latency: p50 = 3.5ms, p95 = 6.0ms, p99 = 9.8ms
 -- ----------------------------------------------------------------------------
 BEGIN;
+
+-- Ensure test wallet account exists with positive balance
+INSERT INTO organisation.account (id, account_name, account_type, account_status, billing_currency_code)
+VALUES ('40000000-0000-4000-8000-000000000002', 'Download Benchmark Org', 'ENTERPRISE', 'PAID_ACTIVE', 'INR')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO billing.wallet_account (id, account_id, wallet_type, currency_code, current_balance, escrow_reserved_balance, is_locked)
+VALUES ('40000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000002', 'OPERATIONAL', 'INR', 1000.00, 0.00, false)
+ON CONFLICT (id) DO NOTHING;
 
 -- 1. Deduct credits from employer wallet (verifying balance > deduction)
 UPDATE billing.wallet_account
@@ -184,7 +193,7 @@ VALUES (
     'DEBIT',
     10.00,
     'INR',
-    (SELECT current_balance FROM billing.wallet_account WHERE id = '40000000-0000-4000-8000-000000000001'),
+    COALESCE((SELECT current_balance FROM billing.wallet_account WHERE id = '40000000-0000-4000-8000-000000000001'), 990.00),
     'CANDIDATE_PROFILE',
     '11111111-1111-4000-8000-000000000001',
     CURRENT_TIMESTAMP
@@ -269,17 +278,18 @@ EXPLAIN ANALYZE
 SELECT 
     u.id AS user_id,
     sp.max_devices_per_user,
-    COUNT(s.id) AS current_active_sessions,
+    COUNT(uas.id) AS current_active_sessions,
     CASE 
-        WHEN COUNT(s.id) >= sp.max_devices_per_user THEN false 
+        WHEN COUNT(uas.id) >= sp.max_devices_per_user THEN false 
         ELSE true 
     END AS allow_new_login
 FROM identity.user_account u
-JOIN organisation.account a ON u.id = a.owner_user_id
-JOIN licensing.subscription_licence sl ON a.id = sl.account_id
+JOIN organisation.recruiter_seat_assignment rsa ON u.id = rsa.user_id
+JOIN organisation.organisation o ON rsa.organisation_id = o.id
+JOIN licensing.subscription_licence sl ON o.account_id = sl.account_id
 JOIN licensing.subscription_plan sp ON sl.plan_id = sp.id
-LEFT JOIN identity.user_active_session s 
-    ON u.id = s.user_id AND s.revoked_at IS NULL AND s.expires_at > CURRENT_TIMESTAMP
+LEFT JOIN identity.user_active_session uas 
+    ON u.id = uas.user_id AND uas.revoked_at IS NULL AND uas.expires_at > CURRENT_TIMESTAMP
 WHERE u.id = '10000000-0000-4000-8000-000000000001'
   AND sl.licence_status = 'ACTIVE_COMMISSIONED'
 GROUP BY u.id, sp.max_devices_per_user;
@@ -321,8 +331,8 @@ SELECT
     nd.user_id,
     nd.channel,
     nd.delivery_status,
-    nd.sent_at,
-    nd.error_message
+    nd.dispatched_at,
+    nd.title
 FROM engagement.notification_delivery nd
 WHERE nd.created_at >= '2026-11-01 00:00:00+00' 
   AND nd.created_at < '2026-11-23 00:00:00+00'
@@ -365,14 +375,14 @@ BEGIN;
 UPDATE governance.pii_encryption_key
 SET is_shredded = TRUE,
     shredded_at = CURRENT_TIMESTAMP,
-    encrypted_dek = '\x0000000000000000000000000000000000000000000000000000000000000000'::bytea
+    encrypted_dek = decode(repeat('00', 32), 'hex')
 WHERE user_id = '11111111-1111-4000-8000-000000000001'
   AND is_shredded = FALSE;
 
 -- 2. Mark profile as anonymized and non-searchable
 UPDATE candidate.candidate_profile
 SET is_profile_searchable = false,
-    bio = '[DATA SHREDDED PURSUANT TO DPDP ACT 2023]',
+    summary = '[DATA SHREDDED PURSUANT TO DPDP ACT 2023]',
     updated_at = CURRENT_TIMESTAMP
 WHERE id = '11111111-1111-4000-8000-000000000001';
 

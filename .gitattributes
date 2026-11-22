@@ -1,0 +1,8 @@
+# Set default behavior to automatically normalize line endings to LF
+* text eol=lf
+
+*.sql text eol=lf
+*.sh text eol=lf
+*.json text eol=lf
+*.py text eol=lf
+*.md text eol=lf

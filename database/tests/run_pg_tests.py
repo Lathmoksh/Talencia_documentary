@@ -52,6 +52,14 @@ def main():
     print(f"          Target Host: {PGHOST}:{PGPORT} | Database: {PGDATABASE}               ")
     print("================================================================================")
     
+    print("=== STEP 0: EXECUTING CATALOG DRIFT VALIDATOR (DDDL SINGLE SOURCE OF TRUTH) ===")
+    drift_script = os.path.join(os.path.dirname(__file__), 'validate_catalog_drift.py')
+    res = subprocess.run([sys.executable, drift_script], capture_output=True, text=True)
+    print(res.stdout)
+    if res.returncode != 0:
+        print("[CI FAILURE] Catalog drift defects detected!")
+        return 1
+
     stages = [
         ('1. Baseline Migration', ['database/migrations/V1__baseline.sql']),
         ('2. Master Reference Seeds', sorted(glob.glob('database/seeds/00_reference/*.sql'))),

@@ -35,16 +35,16 @@ BEGIN
 
     -- Update batch audit record
     INSERT INTO governance.system_audit_event (
-        id, event_type, actor_user_id, resource_name, resource_id,
-        action_description, payload_hash, created_at
+        id, event_type, actor_user_id, resource_entity, resource_id,
+        payload_after_json, tamper_hash, created_at
     ) VALUES (
         gen_random_uuid(),
         'INGESTION_BATCH_RECONCILED_COMMITTED',
         NULL,
         'governance.ingestion_batch',
         p_batch_id,
-        format('Batch %s passed zero-loss reconciliation. Loaded: %s, Quarantined: %s', p_batch_id, v_loaded_count, v_quarantined_count),
-        md5(p_batch_id::text),
+        json_build_object('reconciliation_note', format('Batch %s passed zero-loss reconciliation. Loaded: %s, Quarantined: %s', p_batch_id, v_loaded_count, v_quarantined_count)),
+        encode(digest(p_batch_id::text, 'sha256'), 'hex'),
         CURRENT_TIMESTAMP
     );
 END;

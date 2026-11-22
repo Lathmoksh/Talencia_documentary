@@ -1,24 +1,24 @@
 -- Pre-Calculated Kimball Star Schema Analytics Marts
 -- dim_date
 INSERT INTO analytics.dim_date (
-  date_key, calendar_date, year_number, quarter_number, month_number, month_name,
-  day_of_month, day_of_week_number, day_of_week_name, is_weekend, is_holiday
+  date_key, full_date, calendar_year, calendar_quarter, month_number, month_name,
+  day_of_month, day_of_week, day_name, is_weekend, is_holiday, created_at
 ) VALUES
-  (20261101, '2026-11-01', 2026, 4, 11, 'November', 1, 7, 'Sunday', true, false),
-  (20261102, '2026-11-02', 2026, 4, 11, 'November', 2, 1, 'Monday', false, false),
-  (20261103, '2026-11-03', 2026, 4, 11, 'November', 3, 2, 'Tuesday', false, false)
+  (20261101, '2026-11-01', 2026, 4, 11, 'November', 1, 7, 'Sunday', true, false, CURRENT_TIMESTAMP),
+  (20261102, '2026-11-02', 2026, 4, 11, 'November', 2, 1, 'Monday', false, false, CURRENT_TIMESTAMP),
+  (20261103, '2026-11-03', 2026, 4, 11, 'November', 3, 2, 'Tuesday', false, false, CURRENT_TIMESTAMP)
 ON CONFLICT (date_key) DO NOTHING;
 
 -- dim_pipeline_stage
 INSERT INTO analytics.dim_pipeline_stage (
-  stage_key, stage_code, stage_name, stage_order, is_terminal
+  stage_key, stage_code, stage_name, funnel_order, is_terminal_stage, created_at, created_by, updated_at, updated_by
 ) VALUES
-  (1, 'DRAFT', 'Draft Application', 1, false),
-  (2, 'SUBMITTED', 'Submitted', 2, false),
-  (3, 'SCREENING_PASSED', 'Screening Passed', 3, false),
-  (4, 'TECHNICAL_ASSESSMENT', 'Technical Assessment', 4, false),
-  (5, 'INTERVIEW_SCHEDULED', 'Interview Scheduled', 5, false),
-  (6, 'OFFER_EXTENDED', 'Offer Extended', 6, false),
-  (7, 'OFFER_ACCEPTED', 'Offer Accepted / Hired', 7, true),
-  (8, 'REJECTED', 'Rejected', 8, true)
+  (1, 'DRAFT', 'Draft Application', 1, false, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000'),
+  (2, 'SUBMITTED', 'Submitted', 2, false, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000'),
+  (3, 'SCREENING_PASSED', 'Screening Passed', 3, false, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000'),
+  (4, 'TECHNICAL_ASSESSMENT', 'Technical Assessment', 4, false, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000'),
+  (5, 'INTERVIEW_SCHEDULED', 'Interview Scheduled', 5, false, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000'),
+  (6, 'OFFER_EXTENDED', 'Offer Extended', 6, false, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000'),
+  (7, 'OFFER_ACCEPTED', 'Offer Accepted / Hired', 7, true, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000'),
+  (8, 'REJECTED', 'Rejected', 8, true, CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000', CURRENT_TIMESTAMP, '00000000-0000-4000-8000-000000000000')
 ON CONFLICT (stage_key) DO NOTHING;

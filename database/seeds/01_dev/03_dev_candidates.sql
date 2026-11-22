@@ -16,28 +16,28 @@ INSERT INTO candidate.candidate_profile (
 
 -- Skills
 INSERT INTO candidate.candidate_skill (
-  id, candidate_id, skill_id, proficiency_level, years_of_experience, is_primary, created_at, updated_at
+  id, candidate_id, skill_id, proficiency_level, years_of_experience, is_primary, created_at, created_by, updated_at, updated_by
 ) VALUES
-  ('31000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000051', 'EXPERT', 5.0, true, '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z'),
-  ('31000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000052', 'EXPERT', 5.0, true, '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z'),
-  ('31000000-0000-4000-8000-000000000003', '30000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000055', 'ADVANCED', 4.0, false, '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z')
+  ('31000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000051', 'EXPERT', 5.0, true, '2026-11-01T00:00:00Z', '00000000-0000-4000-8000-000000000000', '2026-11-01T00:00:00Z', '00000000-0000-4000-8000-000000000000'),
+  ('31000000-0000-4000-8000-000000000002', '30000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000052', 'EXPERT', 5.0, true, '2026-11-01T00:00:00Z', '00000000-0000-4000-8000-000000000000', '2026-11-01T00:00:00Z', '00000000-0000-4000-8000-000000000000'),
+  ('31000000-0000-4000-8000-000000000003', '30000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000055', 'ADVANCED', 4.0, false, '2026-11-01T00:00:00Z', '00000000-0000-4000-8000-000000000000', '2026-11-01T00:00:00Z', '00000000-0000-4000-8000-000000000000')
 ON CONFLICT (id) DO NOTHING;
 
 -- Work Experience
 INSERT INTO candidate.candidate_work_experience (
-  id, candidate_id, company_name, job_title, start_date, end_date, is_current, description, created_at, updated_at
+  id, candidate_id, company_name, job_title, start_date, end_date, is_current_job, description, created_at, created_by, updated_at, updated_by
 ) VALUES (
   '32000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000001',
   'NextGen Distributed Systems', 'Senior Systems Engineer', '2021-08-01', NULL, true,
   'Designed PostgreSQL 16 sharding and event streaming pipelines handling 50k writes/sec.',
-  '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z'
+  '2026-11-01T00:00:00Z', '00000000-0000-4000-8000-000000000000', '2026-11-01T00:00:00Z', '00000000-0000-4000-8000-000000000000'
 ) ON CONFLICT (id) DO NOTHING;
 
 -- Education
 INSERT INTO candidate.candidate_education (
-  id, candidate_id, institution_name, qualification_id, start_date, end_date, grade_percentage, is_highest, created_at, updated_at
+  id, candidate_id, institution_name, qualification_id, start_date, end_date, grade_percentage, is_completed, created_at, created_by, updated_at, updated_by
 ) VALUES (
   '33000000-0000-4000-8000-000000000001', '30000000-0000-4000-8000-000000000001',
   'National Institute of Technology Karnataka', '00000000-0000-4000-8000-000000000061',
-  '2014-08-01', '2018-06-01', 86.50, true, '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z'
+  '2014-08-01', '2018-06-01', 86.50, true, '2026-11-01T00:00:00Z', '00000000-0000-4000-8000-000000000000', '2026-11-01T00:00:00Z', '00000000-0000-4000-8000-000000000000'
 ) ON CONFLICT (id) DO NOTHING;

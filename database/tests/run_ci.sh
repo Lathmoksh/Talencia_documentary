@@ -10,6 +10,9 @@ export PGPORT="${PGPORT:-5432}"
 export PGDATABASE="${PGDATABASE:-talentra_db}"
 export PGUSER="${PGUSER:-postgres}"
 
+echo "=== STEP 0: EXECUTING CATALOG DRIFT VALIDATOR (DDDL SINGLE SOURCE OF TRUTH) ==="
+python3 database/tests/validate_catalog_drift.py || python database/tests/validate_catalog_drift.py
+
 echo "=== STEP 1: APPLYING POSTGRESQL 16 BASELINE MIGRATION ==="
 psql -v ON_ERROR_STOP=1 -f database/migrations/V1__baseline.sql
 

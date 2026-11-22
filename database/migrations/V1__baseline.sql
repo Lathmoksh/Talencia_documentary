@@ -2412,10 +2412,10 @@ CREATE INDEX IF NOT EXISTS idx_job_application_req_cand ON application.job_appli
 CREATE INDEX IF NOT EXISTS idx_job_application_status ON application.job_application (application_status);
 
 CREATE INDEX IF NOT EXISTS idx_gig_request_status ON gig.gig_request (request_status);
-CREATE INDEX IF NOT EXISTS idx_gig_contract_parties ON gig.gig_contract (client_account_id, gig_worker_id);
+CREATE INDEX IF NOT EXISTS idx_gig_contract_parties ON gig.gig_contract (organisation_id, worker_id);
 
-CREATE INDEX IF NOT EXISTS idx_wallet_ledger_account ON billing.wallet_ledger (wallet_account_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_audit_event_actor ON governance.system_audit_event (actor_user_id, event_timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_wallet_ledger_account ON billing.wallet_ledger (wallet_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_event_actor ON governance.system_audit_event (actor_user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notification_user ON engagement.notification_delivery (user_id, created_at DESC);
 
 -- -------------------------------------------------------------
@@ -2557,13 +2557,25 @@ BEGIN
     END IF;
 
     -- 2. Lookup maximum devices allowed per user under the active subscription licence
+    -- First check recruiter seat assignment, then fallback to account creator
     SELECT sp.max_devices_per_user INTO v_max_devices
-    FROM organisation.account a
-    JOIN licensing.subscription_licence sl ON a.id = sl.account_id
+    FROM organisation.recruiter_seat_assignment rsa
+    JOIN organisation.organisation o ON rsa.organisation_id = o.id
+    JOIN licensing.subscription_licence sl ON o.account_id = sl.account_id
     JOIN licensing.subscription_plan sp ON sl.plan_id = sp.id
-    WHERE a.owner_user_id = p_user_id
+    WHERE rsa.user_id = p_user_id
       AND sl.licence_status = 'ACTIVE_COMMISSIONED'
     LIMIT 1;
+
+    IF v_max_devices IS NULL THEN
+        SELECT sp.max_devices_per_user INTO v_max_devices
+        FROM organisation.account a
+        JOIN licensing.subscription_licence sl ON a.id = sl.account_id
+        JOIN licensing.subscription_plan sp ON sl.plan_id = sp.id
+        WHERE a.created_by = p_user_id
+          AND sl.licence_status = 'ACTIVE_COMMISSIONED'
+        LIMIT 1;
+    END IF;
 
     -- Fail-closed logic: if no active licence found, check if candidate or fail closed
     IF v_max_devices IS NULL OR v_max_devices <= 0 THEN
@@ -2629,7 +2641,7 @@ RETURNS VOID AS $$
 BEGIN
     UPDATE governance.pii_encryption_key
     SET is_shredded = TRUE,
-        encrypted_dek = ' 00000000000000000000000000000000000000000000000000000000000000'::bytea,
+        encrypted_dek = decode(repeat('00', 32), 'hex'),
         shredded_at = CURRENT_TIMESTAMP,
         shredded_by_user_id = p_actor_user_id
     WHERE user_id = (SELECT user_id FROM candidate.candidate_profile WHERE id = p_candidate_id)
@@ -2637,7 +2649,7 @@ BEGIN
 
     UPDATE candidate.candidate_profile
     SET is_profile_searchable = FALSE,
-        bio = '[DATA SHREDDED PURSUANT TO DPDP ACT 2023]',
+        summary = '[DATA SHREDDED PURSUANT TO DPDP ACT 2023]',
         headline = 'Anonymized Candidate',
         updated_at = CURRENT_TIMESTAMP,
         updated_by = p_actor_user_id
