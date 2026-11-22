@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS licensing.subscription_plan (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_subscription_plan PRIMARY KEY (id),
     CONSTRAINT uq_subscription_plan_plan_code UNIQUE (plan_code)
 );
@@ -38,6 +40,8 @@ CREATE TABLE IF NOT EXISTS licensing.subscription_licence (
     auto_renew BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_subscription_licence PRIMARY KEY (id),
     CONSTRAINT chk_subscription_licence_licence_status CHECK (licence_status IN ('PENDING_PROVISIONING', 'ACTIVE_COMMISSIONED', 'RENEWAL_DUE', 'GRACE_PERIOD', 'SUSPENDED_NON_PAYMENT', 'TERMINATED_EXPIRED'))
 );
@@ -54,6 +58,9 @@ CREATE TABLE IF NOT EXISTS licensing.licence_entitlement_usage (
     allocated_quota INTEGER DEFAULT 0 NOT NULL,
     consumed_quota INTEGER DEFAULT 0 NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_licence_entitlement_usage PRIMARY KEY (id)
 );
 

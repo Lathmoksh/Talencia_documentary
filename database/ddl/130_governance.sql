@@ -14,9 +14,12 @@ CREATE TABLE IF NOT EXISTS governance.dpdp_consent_record (
     status VARCHAR(20) DEFAULT 'ACTIVE' NOT NULL,
     granted_ip_address INET NOT NULL,
     granted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    revoked_at TIMESTAMPTZ DEFAULT 'NULL',
-    withdrawal_reason VARCHAR(255) DEFAULT 'NULL',
+    revoked_at TIMESTAMPTZ,
+    withdrawal_reason VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_dpdp_consent_record PRIMARY KEY (id),
     CONSTRAINT chk_dpdp_consent_record_status CHECK (status IN ('PENDING_OPT_IN', 'EXPLICIT_GRANTED', 'EXPLICIT_REVOKED', 'SYSTEM_SUPERSEDED', 'ANONYMIZED_EXPIRED'))
 );
@@ -30,9 +33,12 @@ CREATE TABLE IF NOT EXISTS governance.pii_encryption_key (
     encrypted_dek TEXT NOT NULL,
     key_version SMALLINT DEFAULT 1 NOT NULL,
     is_shredded BOOLEAN DEFAULT FALSE NOT NULL,
-    shredded_at TIMESTAMPTZ DEFAULT 'NULL',
-    shredded_by_user_id UUID DEFAULT 'NULL',
+    shredded_at TIMESTAMPTZ,
+    shredded_by_user_id UUID,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_pii_encryption_key PRIMARY KEY (id),
     CONSTRAINT uq_pii_encryption_key_user_id UNIQUE (user_id)
 );
@@ -47,8 +53,8 @@ CREATE TABLE IF NOT EXISTS governance.system_audit_event (
     event_type VARCHAR(50) NOT NULL,
     resource_entity VARCHAR(50) NOT NULL,
     resource_id UUID NOT NULL,
-    payload_before_json TEXT DEFAULT 'NULL',
-    payload_after_json TEXT DEFAULT 'NULL',
+    payload_before_json TEXT,
+    payload_after_json TEXT,
     tamper_hash CHAR(64) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT pk_system_audit_event PRIMARY KEY (id),
@@ -66,6 +72,8 @@ CREATE TABLE IF NOT EXISTS governance.data_retention_policy (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_data_retention_policy PRIMARY KEY (id),
     CONSTRAINT uq_data_retention_policy_entity_type UNIQUE (entity_type)
 );

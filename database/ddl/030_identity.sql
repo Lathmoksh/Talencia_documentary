@@ -17,17 +17,17 @@ CREATE TABLE IF NOT EXISTS identity.user_account (
     is_phone_verified BOOLEAN DEFAULT FALSE NOT NULL,
     two_factor_enabled BOOLEAN DEFAULT FALSE NOT NULL,
     failed_login_attempts SMALLINT DEFAULT 0 NOT NULL,
-    locked_until TIMESTAMPTZ DEFAULT 'NULL',
-    last_login_at TIMESTAMPTZ DEFAULT 'NULL',
+    locked_until TIMESTAMPTZ,
+    last_login_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by UUID DEFAULT 'NULL',
+    created_by UUID,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID DEFAULT 'NULL',
-    deleted_at TIMESTAMPTZ DEFAULT 'NULL',
+    updated_by UUID,
+    deleted_at TIMESTAMPTZ,
     CONSTRAINT pk_user_account PRIMARY KEY (id),
     CONSTRAINT uq_user_account_email UNIQUE (email),
     CONSTRAINT uq_user_account_phone_number UNIQUE (phone_number),
-    CONSTRAINT chk_user_account_account_status CHECK (account_status IN ('REGISTERED_UNVERIFIED', 'ACTIVE_VERIFIED', 'SUSPENDED_SECURITY', 'LOCKED_FAILED_LOGINS', 'ANONYMIZED_PURGED'))
+    CONSTRAINT chk_user_account_account_status CHECK (account_status IN ('REGISTERED_UNVERIFIED', 'ACTIVE_VERIFIED', 'SUSPENDED_SECURITY', 'LOCKED_FAILED_LOGINS', 'ANONYMIZED_DELETED'))
 );
 
 -- -------------------------------------------------------------
@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS identity.user_credential (
     must_change_password BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_user_credential PRIMARY KEY (id),
     CONSTRAINT uq_user_credential_user_id UNIQUE (user_id)
 );
@@ -55,11 +57,13 @@ CREATE TABLE IF NOT EXISTS identity.role (
     role_code VARCHAR(50) NOT NULL,
     role_name VARCHAR(100) NOT NULL,
     role_scope VARCHAR(30) NOT NULL,
-    description VARCHAR(500) DEFAULT 'NULL',
+    description VARCHAR(500),
     is_system_role BOOLEAN DEFAULT TRUE NOT NULL,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_role PRIMARY KEY (id),
     CONSTRAINT uq_role_role_code UNIQUE (role_code)
 );
@@ -73,8 +77,12 @@ CREATE TABLE IF NOT EXISTS identity.user_role (
     role_id UUID NOT NULL,
     granted_by UUID NOT NULL,
     granted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    expires_at TIMESTAMPTZ DEFAULT 'NULL',
+    expires_at TIMESTAMPTZ,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_user_role PRIMARY KEY (id)
 );
 
@@ -88,12 +96,16 @@ CREATE TABLE IF NOT EXISTS identity.user_active_session (
     device_id VARCHAR(100) NOT NULL,
     device_type VARCHAR(30) NOT NULL,
     client_ip INET NOT NULL,
-    user_agent VARCHAR(500) DEFAULT 'NULL',
+    user_agent VARCHAR(500),
     started_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     last_activity_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
-    revoked_at TIMESTAMPTZ DEFAULT 'NULL',
-    revocation_reason VARCHAR(100) DEFAULT 'NULL',
+    revoked_at TIMESTAMPTZ,
+    revocation_reason VARCHAR(100),
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_user_active_session PRIMARY KEY (id),
     CONSTRAINT uq_user_active_session_session_token_hash UNIQUE (session_token_hash)
 );
@@ -109,11 +121,14 @@ CREATE TABLE IF NOT EXISTS identity.service_api_key (
     key_name VARCHAR(100) NOT NULL,
     scopes TEXT DEFAULT '["read:requisitions","write:applications"]' NOT NULL,
     rate_limit_per_minute INTEGER DEFAULT 600 NOT NULL,
-    last_used_at TIMESTAMPTZ DEFAULT 'NULL',
-    expires_at TIMESTAMPTZ DEFAULT 'NULL',
+    last_used_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    revoked_at TIMESTAMPTZ DEFAULT 'NULL',
+    revoked_at TIMESTAMPTZ,
+    created_by UUID NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_service_api_key PRIMARY KEY (id),
     CONSTRAINT uq_service_api_key_key_prefix UNIQUE (key_prefix),
     CONSTRAINT uq_service_api_key_key_hash UNIQUE (key_hash)

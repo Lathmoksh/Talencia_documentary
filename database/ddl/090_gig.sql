@@ -12,15 +12,17 @@ CREATE TABLE IF NOT EXISTS gig.gig_worker_profile (
     professional_title VARCHAR(150) NOT NULL,
     bio_summary TEXT NOT NULL,
     hourly_rate_amount NUMERIC(10,2) NOT NULL,
-    daily_rate_amount NUMERIC(10,2) DEFAULT 'NULL',
+    daily_rate_amount NUMERIC(10,2),
     rate_currency_code CHAR(3) DEFAULT 'USD' NOT NULL,
     total_completed_gigs INTEGER DEFAULT 0 NOT NULL,
     average_rating_score NUMERIC(3,2) DEFAULT 5.00 NOT NULL,
     availability_status VARCHAR(20) DEFAULT 'AVAILABLE' NOT NULL,
-    portfolio_url VARCHAR(255) DEFAULT 'NULL',
+    portfolio_url VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    deleted_at TIMESTAMPTZ DEFAULT 'NULL',
+    deleted_at TIMESTAMPTZ,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_gig_worker_profile PRIMARY KEY (id),
     CONSTRAINT uq_gig_worker_profile_user_id UNIQUE (user_id)
 );
@@ -40,6 +42,8 @@ CREATE TABLE IF NOT EXISTS gig.gig_worker_service (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_gig_worker_service PRIMARY KEY (id)
 );
 
@@ -55,8 +59,10 @@ CREATE TABLE IF NOT EXISTS gig.gig_worker_availability (
     is_booked BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    CONSTRAINT pk_gig_worker_availability PRIMARY KEY (id),
-    CONSTRAINT excl_gig_worker_avail_overlap EXCLUDE USING gist (worker_id WITH =, availability_window WITH &&)
+    availability_window TSTZRANGE NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
+    CONSTRAINT pk_gig_worker_availability PRIMARY KEY (id)
 );
 
 -- -------------------------------------------------------------
@@ -77,7 +83,9 @@ CREATE TABLE IF NOT EXISTS gig.gig_request (
     required_worker_count SMALLINT DEFAULT 1 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    deleted_at TIMESTAMPTZ DEFAULT 'NULL',
+    deleted_at TIMESTAMPTZ,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_gig_request PRIMARY KEY (id),
     CONSTRAINT chk_gig_request_request_status CHECK (request_status IN ('DRAFT', 'OPEN_BIDDING', 'PROPOSALS_UNDER_REVIEW', 'MATCH_CONFIRMED', 'WORK_IN_PROGRESS', 'COMPLETED_DELIVERED', 'DISPUTED_ARBITRATION', 'CANCELLED_UNFILLED'))
 );
@@ -95,9 +103,11 @@ CREATE TABLE IF NOT EXISTS gig.gig_proposal (
     estimated_completion_days INTEGER DEFAULT 10 NOT NULL,
     proposal_status VARCHAR(20) DEFAULT 'SUBMITTED' NOT NULL,
     submitted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    reviewed_at TIMESTAMPTZ DEFAULT 'NULL',
+    reviewed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_gig_proposal PRIMARY KEY (id),
     CONSTRAINT chk_gig_proposal_proposal_status CHECK (proposal_status IN ('SUBMITTED', 'UNDER_CLIENT_REVIEW', 'ACCEPTED_AWARDED', 'DECLINED_REJECTED', 'WITHDRAWN_BY_WORKER', 'EXPIRED'))
 );
@@ -116,11 +126,13 @@ CREATE TABLE IF NOT EXISTS gig.gig_contract (
     agreed_amount NUMERIC(12,2) NOT NULL,
     currency_code CHAR(3) DEFAULT 'USD' NOT NULL,
     contract_status VARCHAR(20) DEFAULT 'SIGNED' NOT NULL,
-    external_fulfillment_reference VARCHAR(100) DEFAULT 'NULL',
+    external_fulfillment_reference VARCHAR(100),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     signed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    completed_at TIMESTAMPTZ DEFAULT 'NULL',
+    completed_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_gig_contract PRIMARY KEY (id),
     CONSTRAINT uq_gig_contract_proposal_id UNIQUE (proposal_id),
     CONSTRAINT chk_gig_contract_contract_status CHECK (contract_status IN ('PENDING_ESCROW', 'ACTIVE_IN_PROGRESS', 'PAUSED_REVISION', 'PENDING_ACCEPTANCE', 'DISPUTED', 'SETTLED_CLOSED', 'TERMINATED_MUTUAL', 'CANCELLED_PRE_START')),
@@ -140,14 +152,16 @@ CREATE TABLE IF NOT EXISTS gig.gig_milestone (
     milestone_amount NUMERIC(12,2) NOT NULL,
     escrow_allocation_amount NUMERIC(12,2) NOT NULL,
     currency_code CHAR(3) DEFAULT 'USD' NOT NULL,
-    milestone_status VARCHAR(20) DEFAULT 'PENDING' NOT NULL,
-    submitted_at TIMESTAMPTZ DEFAULT 'NULL',
-    approved_at TIMESTAMPTZ DEFAULT 'NULL',
+    milestone_status VARCHAR(20) DEFAULT 'PENDING_FUNDING' NOT NULL,
+    submitted_at TIMESTAMPTZ,
+    approved_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_gig_milestone PRIMARY KEY (id),
     CONSTRAINT chk_gig_milestone_milestone_status CHECK (milestone_status IN ('PENDING_FUNDING', 'FUNDED_ESCROW_LOCKED', 'IN_PROGRESS', 'SUBMITTED_FOR_REVIEW', 'REVISION_REQUESTED', 'APPROVED_RELEASED', 'DISPUTED_FROZEN', 'REFUNDED_TO_CLIENT')),
-    CONSTRAINT chk_gig_milestone_rule_1 CHECK (amount >= 0.00)
+    CONSTRAINT chk_gig_milestone_rule_1 CHECK (milestone_amount >= 0.00)
 );
 
 -- -------------------------------------------------------------
@@ -159,13 +173,17 @@ CREATE TABLE IF NOT EXISTS gig.gig_rating (
     rater_user_id UUID NOT NULL,
     rated_user_id UUID NOT NULL,
     rating_score NUMERIC(3,2) NOT NULL,
-    review_text TEXT DEFAULT 'NULL',
+    review_text TEXT,
     communication_score NUMERIC(3,2) NOT NULL,
     quality_score NUMERIC(3,2) NOT NULL,
     timeliness_score NUMERIC(3,2) NOT NULL,
     submitted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_gig_rating PRIMARY KEY (id),
-    CONSTRAINT chk_gig_rating_rule_1 CHECK (score >= 1.0 AND score <= 5.0)
+    CONSTRAINT chk_gig_rating_rule_1 CHECK (rating_score >= 1.0 AND rating_score <= 5.0)
 );
 
 -- -------------------------------------------------------------
@@ -176,10 +194,11 @@ CREATE TABLE IF NOT EXISTS gig.client_gig_worker_preference (
     organisation_id UUID NOT NULL,
     worker_id UUID NOT NULL,
     preference_type VARCHAR(20) NOT NULL,
-    notes VARCHAR(500) DEFAULT 'NULL',
+    notes VARCHAR(500),
     created_by UUID NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_client_gig_worker_preference PRIMARY KEY (id)
 );
 

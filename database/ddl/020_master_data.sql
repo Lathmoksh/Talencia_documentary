@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS master_data.country (
     sort_order INTEGER DEFAULT 100 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_country PRIMARY KEY (id),
     CONSTRAINT uq_country_iso_alpha2_code UNIQUE (iso_alpha2_code),
     CONSTRAINT uq_country_iso_alpha3_code UNIQUE (iso_alpha3_code)
@@ -34,6 +36,8 @@ CREATE TABLE IF NOT EXISTS master_data.state (
     sort_order INTEGER DEFAULT 100 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_state PRIMARY KEY (id)
 );
 
@@ -45,11 +49,13 @@ CREATE TABLE IF NOT EXISTS master_data.city (
     country_id UUID NOT NULL,
     state_id UUID NOT NULL,
     city_name VARCHAR(100) NOT NULL,
-    latitude NUMERIC(9,6) DEFAULT 'NULL',
-    longitude NUMERIC(9,6) DEFAULT 'NULL',
+    latitude NUMERIC(9,6),
+    longitude NUMERIC(9,6),
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_city PRIMARY KEY (id)
 );
 
@@ -65,6 +71,8 @@ CREATE TABLE IF NOT EXISTS master_data.currency (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_currency PRIMARY KEY (currency_code),
     CONSTRAINT uq_currency_iso_numeric_code UNIQUE (iso_numeric_code)
 );
@@ -80,6 +88,8 @@ CREATE TABLE IF NOT EXISTS master_data.language (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_language PRIMARY KEY (language_code)
 );
 
@@ -90,11 +100,13 @@ CREATE TABLE IF NOT EXISTS master_data.industry (
     id UUID DEFAULT gen_random_uuid() NOT NULL,
     industry_code VARCHAR(30) NOT NULL,
     industry_name VARCHAR(100) NOT NULL,
-    description VARCHAR(500) DEFAULT 'NULL',
+    description VARCHAR(500),
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     sort_order INTEGER DEFAULT 100 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_industry PRIMARY KEY (id),
     CONSTRAINT uq_industry_industry_code UNIQUE (industry_code)
 );
@@ -107,11 +119,13 @@ CREATE TABLE IF NOT EXISTS master_data.job_role (
     industry_id UUID NOT NULL,
     role_code VARCHAR(50) NOT NULL,
     role_title VARCHAR(100) NOT NULL,
-    description VARCHAR(500) DEFAULT 'NULL',
+    description VARCHAR(500),
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     sort_order INTEGER DEFAULT 100 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_job_role PRIMARY KEY (id),
     CONSTRAINT uq_job_role_role_code UNIQUE (role_code)
 );
@@ -128,6 +142,8 @@ CREATE TABLE IF NOT EXISTS master_data.skill (
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_skill PRIMARY KEY (id),
     CONSTRAINT uq_skill_skill_code UNIQUE (skill_code)
 );
@@ -145,6 +161,8 @@ CREATE TABLE IF NOT EXISTS master_data.qualification (
     sort_order INTEGER DEFAULT 100 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_qualification PRIMARY KEY (id),
     CONSTRAINT uq_qualification_qualification_code UNIQUE (qualification_code)
 );
@@ -156,9 +174,11 @@ CREATE TABLE IF NOT EXISTS master_data.ui_translation_key (
     id UUID DEFAULT gen_random_uuid() NOT NULL,
     translation_key VARCHAR(150) NOT NULL,
     category VARCHAR(50) NOT NULL,
-    description VARCHAR(500) DEFAULT 'NULL',
+    description VARCHAR(500),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_ui_translation_key PRIMARY KEY (id),
     CONSTRAINT uq_ui_translation_key_translation_key UNIQUE (translation_key)
 );
@@ -174,6 +194,26 @@ CREATE TABLE IF NOT EXISTS master_data.ui_translation (
     is_reviewed BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_ui_translation PRIMARY KEY (id)
+);
+
+-- -------------------------------------------------------------
+-- Table: master_data.enum_lookup
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS master_data.enum_lookup (
+    id UUID DEFAULT gen_random_uuid() NOT NULL,
+    enum_domain VARCHAR(64) NOT NULL,
+    enum_code VARCHAR(64) NOT NULL,
+    display_name VARCHAR(150) NOT NULL,
+    language_code CHAR(5) DEFAULT 'en_US' NOT NULL,
+    sort_order INTEGER DEFAULT 1 NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_by UUID NOT NULL,
+    CONSTRAINT pk_enum_lookup PRIMARY KEY (id)
 );
 

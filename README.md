@@ -13,7 +13,7 @@
 Talentra is a high-throughput, enterprise talent acquisition and contingent workforce mobilization platform engineered to unify permanent lateral hiring, blue collar essential trades, gig labor contracting, and university graduate cohort drives within a single multi-tenant ecosystem.
 
 The entire data engineering and database lifecycle has been executed according to the **Data-Driven Development Lifecycle (DDDL) Playbook** and the **Northbridge Workforce Systems Hackathon Project Docket**:
-* **Physical Relational Core:** 90 modular tables across 13 domain schemas with 893 columns.
+* **Physical Relational Core:** 91 modular base tables across 13 domain schemas (plus 15 declarative range partitions) with 1,109 columns.
 * **Storage Engine:** Optimized for PostgreSQL 16 with Row-Level Security (RLS), GiST temporal exclusion constraints, double-entry financial accounting, and India DPDP Act 2023 cryptographic key shredding.
 * **Extrapolation & Sizing:** Calibrated for Laptop Scale ($1\text{M}$ profiles, $100\text{K}$ jobs, $5\text{M}$ applications) and mathematically extrapolated to Production Scale ($10\text{M}$ profiles, $1\text{M}$ jobs, $100\text{M}$ applications).
 * **Automated Verification:** Fully automated multi-gate test harness executing in sub-second latency (`python run_talentra_suite.py`).
@@ -76,7 +76,7 @@ talencia2/
 │   └── business_workflow_architecture.png
 │
 └── database/                                         # Physical Database Artifacts & Scripts
-    ├── schema_definition_90_tables.json              # Machine-readable schema catalog (90 tables, 893 cols)
+    ├── schema_definition_90_tables.json              # Machine-readable schema catalog (91 tables, 1,109 cols)
     ├── ddl/                                          # 17 Modular DDL files (Schemas, Tables, RLS, Triggers)
     ├── migrations/                                   # Flyway / Liquibase V1__baseline.sql physical migration
     ├── er/                                           # Full Mermaid ER diagrams & relationship documentation

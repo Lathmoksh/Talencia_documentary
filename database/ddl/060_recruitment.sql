@@ -26,15 +26,14 @@ CREATE TABLE IF NOT EXISTS recruitment.job_requisition (
     job_description TEXT NOT NULL,
     publish_status VARCHAR(20) DEFAULT 'DRAFT' NOT NULL,
     open_to_consultants BOOLEAN DEFAULT FALSE NOT NULL,
-    application_deadline DATE DEFAULT 'NULL',
-    published_at TIMESTAMPTZ DEFAULT 'NULL',
+    application_deadline DATE,
+    published_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by UUID NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID DEFAULT 'NULL',
-    deleted_at TIMESTAMPTZ DEFAULT 'NULL',
+    updated_by UUID,
+    deleted_at TIMESTAMPTZ,
     CONSTRAINT pk_job_requisition PRIMARY KEY (id),
-    CONSTRAINT chk_job_requisition_publish_status CHECK (publish_status IN ('DRAFT', 'PENDING_APPROVAL', 'PUBLISHED_ACTIVE', 'ON_HOLD', 'CLOSED_FILLED', 'CANCELLED_EXPIRED')),
     CONSTRAINT chk_job_requisition_rule_1 CHECK (min_salary_amount IS NULL OR min_salary_amount >= 0.00),
     CONSTRAINT chk_job_requisition_rule_2 CHECK (max_salary_amount IS NULL OR max_salary_amount >= 0.00),
     CONSTRAINT chk_job_requisition_rule_3 CHECK (max_salary_amount IS NULL OR min_salary_amount IS NULL OR max_salary_amount >= min_salary_amount),
@@ -51,6 +50,9 @@ CREATE TABLE IF NOT EXISTS recruitment.job_requisition_skill (
     requirement_type VARCHAR(20) DEFAULT 'MANDATORY' NOT NULL,
     min_experience_months INTEGER DEFAULT 0 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_job_requisition_skill PRIMARY KEY (id)
 );
 
@@ -66,6 +68,8 @@ CREATE TABLE IF NOT EXISTS recruitment.job_questionnaire (
     version_number SMALLINT DEFAULT 1 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_job_questionnaire PRIMARY KEY (id),
     CONSTRAINT uq_job_questionnaire_requisition_id UNIQUE (requisition_id)
 );
@@ -82,6 +86,9 @@ CREATE TABLE IF NOT EXISTS recruitment.questionnaire_question (
     is_disqualifying BOOLEAN DEFAULT FALSE NOT NULL,
     sort_order INTEGER DEFAULT 1 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_questionnaire_question PRIMARY KEY (id)
 );
 
@@ -96,6 +103,9 @@ CREATE TABLE IF NOT EXISTS recruitment.question_option (
     score_value INTEGER DEFAULT 0 NOT NULL,
     sort_order INTEGER DEFAULT 1 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_question_option PRIMARY KEY (id)
 );
 

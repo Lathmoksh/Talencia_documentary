@@ -10,17 +10,17 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_profile (
     id UUID DEFAULT gen_random_uuid() NOT NULL,
     user_id UUID NOT NULL,
     first_name VARCHAR(75) NOT NULL,
-    middle_name VARCHAR(75) DEFAULT 'NULL',
+    middle_name VARCHAR(75),
     last_name VARCHAR(75) NOT NULL,
     display_name VARCHAR(150) NOT NULL,
-    date_of_birth DATE DEFAULT 'NULL',
-    gender VARCHAR(20) DEFAULT 'NULL',
+    date_of_birth DATE,
+    gender VARCHAR(20),
     headline VARCHAR(200) NOT NULL,
-    summary TEXT DEFAULT 'NULL',
+    summary TEXT,
     current_city_id UUID NOT NULL,
     total_experience_months INTEGER DEFAULT 0 NOT NULL,
-    current_salary_amount NUMERIC(12,2) DEFAULT 'NULL',
-    expected_salary_amount NUMERIC(12,2) DEFAULT 'NULL',
+    current_salary_amount NUMERIC(12,2),
+    expected_salary_amount NUMERIC(12,2),
     salary_currency_code CHAR(3) DEFAULT 'USD' NOT NULL,
     notice_period_days INTEGER DEFAULT 30 NOT NULL,
     profile_completion_percentage NUMERIC(5,2) DEFAULT 0.00 NOT NULL,
@@ -28,8 +28,8 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_profile (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by UUID NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_by UUID DEFAULT 'NULL',
-    deleted_at TIMESTAMPTZ DEFAULT 'NULL',
+    updated_by UUID,
+    deleted_at TIMESTAMPTZ,
     CONSTRAINT pk_candidate_profile PRIMARY KEY (id),
     CONSTRAINT uq_candidate_profile_user_id UNIQUE (user_id)
 );
@@ -44,12 +44,15 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_education (
     institution_name VARCHAR(200) NOT NULL,
     field_of_study VARCHAR(150) NOT NULL,
     start_date DATE NOT NULL,
-    end_date DATE DEFAULT 'NULL',
-    grade_or_gpa VARCHAR(20) DEFAULT 'NULL',
-    grade_system VARCHAR(30) DEFAULT 'NULL',
+    end_date DATE,
+    grade_or_gpa VARCHAR(20),
+    grade_system VARCHAR(30),
     is_completed BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    grade_percentage NUMERIC(5,2),
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_candidate_education PRIMARY KEY (id),
     CONSTRAINT chk_candidate_education_rule_1 CHECK (end_date IS NULL OR start_date IS NULL OR end_date >= start_date),
     CONSTRAINT chk_candidate_education_rule_2 CHECK (grade_percentage IS NULL OR (grade_percentage >= 0.00 AND grade_percentage <= 100.00))
@@ -66,11 +69,13 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_work_experience (
     job_role_id UUID NOT NULL,
     industry_id UUID NOT NULL,
     start_date DATE NOT NULL,
-    end_date DATE DEFAULT 'NULL',
+    end_date DATE,
     is_current_job BOOLEAN DEFAULT FALSE NOT NULL,
-    description TEXT DEFAULT 'NULL',
+    description TEXT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_candidate_work_experience PRIMARY KEY (id),
     CONSTRAINT chk_candidate_work_experience_rule_1 CHECK (end_date IS NULL OR start_date IS NULL OR end_date >= start_date)
 );
@@ -85,9 +90,11 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_skill (
     proficiency_level VARCHAR(20) DEFAULT 'INTERMEDIATE' NOT NULL,
     years_of_experience NUMERIC(3,1) DEFAULT 1.0 NOT NULL,
     is_primary BOOLEAN DEFAULT FALSE NOT NULL,
-    last_used_year SMALLINT DEFAULT 'EXTRACT(YEAR FROM CURRENT_DATE)' NOT NULL,
+    last_used_year SMALLINT DEFAULT EXTRACT(YEAR FROM CURRENT_DATE) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_candidate_skill PRIMARY KEY (id)
 );
 
@@ -100,12 +107,14 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_project (
     project_title VARCHAR(150) NOT NULL,
     project_role VARCHAR(100) NOT NULL,
     start_date DATE NOT NULL,
-    end_date DATE DEFAULT 'NULL',
+    end_date DATE,
     description TEXT NOT NULL,
-    project_url VARCHAR(255) DEFAULT 'NULL',
-    outcome VARCHAR(255) DEFAULT 'NULL',
+    project_url VARCHAR(255),
+    outcome VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_candidate_project PRIMARY KEY (id)
 );
 
@@ -119,12 +128,14 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_resume (
     storage_path VARCHAR(500) NOT NULL,
     file_format VARCHAR(20) NOT NULL,
     file_size_bytes INTEGER NOT NULL,
-    parsed_text_search TEXT DEFAULT 'NULL',
+    parsed_text_search TEXT,
     is_primary BOOLEAN DEFAULT TRUE NOT NULL,
     version_number SMALLINT DEFAULT 1 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    deleted_at TIMESTAMPTZ DEFAULT 'NULL',
+    deleted_at TIMESTAMPTZ,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_candidate_resume PRIMARY KEY (id)
 );
 
@@ -140,6 +151,8 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_preference (
     preferred_locations_json TEXT DEFAULT '[]' NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_candidate_preference PRIMARY KEY (id),
     CONSTRAINT uq_candidate_preference_candidate_id UNIQUE (candidate_id)
 );
@@ -150,10 +163,13 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_preference (
 CREATE TABLE IF NOT EXISTS candidate.candidate_block_list (
     id UUID DEFAULT gen_random_uuid() NOT NULL,
     candidate_id UUID NOT NULL,
-    blocked_organisation_id UUID DEFAULT 'NULL',
-    blocked_recruiter_user_id UUID DEFAULT 'NULL',
-    block_reason VARCHAR(255) DEFAULT 'NULL',
+    blocked_organisation_id UUID,
+    blocked_recruiter_user_id UUID,
+    block_reason VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_candidate_block_list PRIMARY KEY (id)
 );
 
@@ -170,6 +186,8 @@ CREATE TABLE IF NOT EXISTS candidate.candidate_language (
     can_speak BOOLEAN DEFAULT TRUE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_candidate_language PRIMARY KEY (id)
 );
 

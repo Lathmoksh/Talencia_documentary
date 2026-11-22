@@ -12,13 +12,16 @@ CREATE TABLE IF NOT EXISTS sourcing.consultant_authorization (
     consultant_user_id UUID NOT NULL,
     commission_rate_percentage NUMERIC(5,2) DEFAULT 8.33 NOT NULL,
     authorization_status VARCHAR(20) DEFAULT 'PENDING' NOT NULL,
-    authorized_by_user_id UUID DEFAULT 'NULL',
-    authorized_at TIMESTAMPTZ DEFAULT 'NULL',
-    expires_at TIMESTAMPTZ DEFAULT 'NULL',
+    authorized_by_user_id UUID,
+    authorized_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_consultant_authorization PRIMARY KEY (id),
-    CONSTRAINT chk_consultant_authorization_authorization_status CHECK (authorization_status IN ('PROPOSED', 'ACTIVE_AUTHORIZED', 'REVOKED_EARLY', 'COMPLETED_CLOSED', 'EXPIRED'))
+    CONSTRAINT chk_consultant_authorization_authorization_status CHECK (authorization_status IN ('INVITED_PENDING', 'ACCEPTED_ACTIVE', 'EXPIRED_TIMEOUT', 'REVOKED_EMPLOYER', 'TERMINATED_HIRE')),
+    CONSTRAINT chk_consultant_authorization_rule_1 CHECK (commission_rate_percentage >= 0.00 AND commission_rate_percentage <= 100.00)
 );
 
 -- -------------------------------------------------------------
@@ -29,11 +32,13 @@ CREATE TABLE IF NOT EXISTS sourcing.candidate_nomination (
     authorization_id UUID NOT NULL,
     candidate_id UUID NOT NULL,
     nomination_status VARCHAR(30) DEFAULT 'NOMINATED' NOT NULL,
-    review_notes VARCHAR(500) DEFAULT 'NULL',
+    review_notes VARCHAR(500),
     nominated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    reviewed_at TIMESTAMPTZ DEFAULT 'NULL',
+    reviewed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_candidate_nomination PRIMARY KEY (id),
     CONSTRAINT chk_candidate_nomination_nomination_status CHECK (nomination_status IN ('NOMINATED_PENDING', 'CLIENT_SHORTLISTED', 'CLIENT_REJECTED', 'HIRED_COMMISSION_EARNED', 'WITHDRAWN_CANDIDATE'))
 );
@@ -52,6 +57,8 @@ CREATE TABLE IF NOT EXISTS sourcing.outreach_campaign (
     credits_deducted INTEGER DEFAULT 0 NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_outreach_campaign PRIMARY KEY (id)
 );
 
@@ -63,12 +70,15 @@ CREATE TABLE IF NOT EXISTS sourcing.outreach_recipient (
     campaign_id UUID NOT NULL,
     candidate_id UUID NOT NULL,
     delivery_status VARCHAR(20) DEFAULT 'QUEUED' NOT NULL,
-    sent_at TIMESTAMPTZ DEFAULT 'NULL',
-    opened_at TIMESTAMPTZ DEFAULT 'NULL',
-    clicked_at TIMESTAMPTZ DEFAULT 'NULL',
-    responded_at TIMESTAMPTZ DEFAULT 'NULL',
-    error_message VARCHAR(255) DEFAULT 'NULL',
+    sent_at TIMESTAMPTZ,
+    opened_at TIMESTAMPTZ,
+    clicked_at TIMESTAMPTZ,
+    responded_at TIMESTAMPTZ,
+    error_message VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_by UUID NOT NULL,
     CONSTRAINT pk_outreach_recipient PRIMARY KEY (id)
 );
 
